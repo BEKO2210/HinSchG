@@ -1,0 +1,90 @@
+# HinSchG — Produktions-Setup (Self-Hosting)
+#
+# App + PostgreSQL + Caddy (Reverse Proxy mit automatischem HTTPS/TLS).
+# Secrets kommen aus der .env (siehe `make setup`); nichts ist hartkodiert.
+#
+# Backup-Hinweis: Das Postgres-Volume `postgres_data` enthaelt alle (verschluesselten)
+# Daten. Regelmaessig sichern, z. B. `make backup` (pg_dump). Der
+# MASTER_ENCRYPTION_KEY liegt NICHT in der DB — separat und sicher aufbewahren,
+# sonst sind die Inhalte nicht mehr entschluesselbar.
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    # Kein veroeffentlichter Port: nur intern erreichbar.
+
+  # Einmaliger Migrations-Lauf vor dem App-Start (nutzt das Builder-Image mit
+  # Prisma-CLI). Beendet sich nach `prisma migrate deploy`.
+  migrate:
+    build:
+      context: .
+      target: builder
+    command: ['npx', 'prisma', 'migrate', 'deploy']
+    restart: 'no'
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    # Kein veroeffentlichter Port: nur ueber den Reverse Proxy erreichbar.
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
