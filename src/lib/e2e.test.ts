@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  decryptAttachment,
   decryptFromRecipient,
   decryptPrivateKey,
   deriveWhistleblowerKeyPair,
+  encryptAttachment,
   encryptForRecipients,
   encryptPrivateKey,
   generateKeyPair,
@@ -137,5 +139,27 @@ describe('deriveWhistleblowerKeyPair', () => {
     expect(s.to_string(await sealOpen(sealed, again.publicKey, again.privateKey))).toBe(
       'Antwort der Meldestelle',
     );
+  });
+});
+
+describe('Anhang-Verschluesselung (Multi-Recipient, binaer)', () => {
+  it('Roundtrip: Empfaenger entschluesselt Datei + Dateiname', async () => {
+    const a = await generateKeyPair();
+    const wb = await generateKeyPair();
+    const bytes = new Uint8Array([0, 1, 2, 3, 250, 255, 128]);
+    const enc = await encryptAttachment(bytes, 'geheim.pdf', { h_a: a.publicKey, WB: wb.publicKey });
+    const out = await decryptAttachment(enc, enc.wraps.h_a!, a.publicKey, a.privateKey);
+    expect(Array.from(out.bytes)).toEqual(Array.from(bytes));
+    expect(out.filename).toBe('geheim.pdf');
+    // Auch der Hinweisgeber (anderer Wrap) bekommt denselben Inhalt.
+    const outWb = await decryptAttachment(enc, enc.wraps.WB!, wb.publicKey, wb.privateKey);
+    expect(outWb.filename).toBe('geheim.pdf');
+  });
+
+  it('ein fremdes Keypaar kann den Anhang NICHT entschluesseln', async () => {
+    const a = await generateKeyPair();
+    const fremd = await generateKeyPair();
+    const enc = await encryptAttachment(new Uint8Array([1, 2, 3]), 'x.pdf', { h_a: a.publicKey, WB: a.publicKey });
+    await expect(decryptAttachment(enc, enc.wraps.h_a!, fremd.publicKey, fremd.privateKey)).rejects.toThrow();
   });
 });

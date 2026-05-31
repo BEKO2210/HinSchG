@@ -23,6 +23,8 @@ export const AUDIT_ACTIONS = [
   'BILLING_SUBSCRIPTION_UPDATED',
   'PROCESSING_REQUESTED',
   'PROCESSING_DECIDED',
+  'ATTACHMENT_ADDED',
+  'ATTACHMENT_VIEWED',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

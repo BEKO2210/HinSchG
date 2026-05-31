@@ -275,3 +275,124 @@ export function validateE2eMessage(
     },
   };
 }
+
+// --- Dateianhaenge (Stufe 2, Ende-zu-Ende) -----------------------------------
+// Erlaubte MIME-Typen (Whitelist). Bewusst eng: gaengige Dokument-/Bildformate,
+// kein HTML/SVG/aktive Inhalte (XSS), keine ausfuehrbaren Typen.
+export const ALLOWED_ATTACHMENT_MIME_TYPES: readonly string[] = [
+  'application/pdf',
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+  'text/plain',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'text/csv',
+] as const;
+
+const ALLOWED_MIME_SET = new Set(ALLOWED_ATTACHMENT_MIME_TYPES);
+
+/** Maximale Klartext-Groesse eines Anhangs (vor Verschluesselung): 10 MiB. */
+export const ATTACHMENT_MAX_PLAINTEXT_BYTES = 10 * 1024 * 1024;
+/** Obergrenze fuer das Ciphertext-Feld (Base64 + Overhead): ~15 MiB. */
+export const ATTACHMENT_MAX_CIPHERTEXT_CHARS = 15 * 1024 * 1024;
+/** Maximale Anzahl Anhaenge pro Upload-Vorgang. */
+export const ATTACHMENT_MAX_PER_REQUEST = 5;
+
+/** Ist der MIME-Typ erlaubt (Whitelist)? */
+export function isAllowedAttachmentMime(value: unknown): value is string {
+  return typeof value === 'string' && ALLOWED_MIME_SET.has(value);
+}
+
+/** Clientseitig verschluesselter Anhang (Multi-Recipient, Stufe 2). */
+export interface E2eAttachment {
+  mimeType: string;
+  /** secretbox(Datei) als {nonce, content} */
+  blob: { nonce: string; content: string };
+  /** secretbox(Dateiname) als {nonce, content} */
+  filename: { nonce: string; content: string };
+  /** EmpfaengerID -> Sealed-Box(Inhaltsschluessel) */
+  wraps: Record<string, string>;
+  /** Groesse des Ciphertexts (Server-Plausibilitaet, kein Klartextmass) */
+  sizeBytes: number;
+}
+
+function isSecretbox(
+  value: unknown,
+  maxContent: number,
+): value is { nonce: string; content: string } {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const v = value as Record<string, unknown>;
+  return isB64(v.nonce, 128) && isB64(v.content, maxContent);
+}
+
+/**
+ * Validiert einen clientseitig verschluesselten Anhang (Shape, MIME-Whitelist,
+ * Groessenlimit, Pflicht-Empfaenger). Der Server sieht nie Klartext; die
+ * tatsaechliche Datei wird im Browser ver-/entschluesselt.
+ */
+export function validateE2eAttachment(
+  raw: unknown,
+): { ok: true; value: E2eAttachment } | { ok: false; error: string } {
+  if (typeof raw !== 'object' || raw === null) {
+    return { ok: false, error: 'Ungültiger Anhang.' };
+  }
+  const b = raw as Record<string, unknown>;
+
+  if (!isAllowedAttachmentMime(b.mimeType)) {
+    return { ok: false, error: 'Dieser Dateityp ist nicht erlaubt.' };
+  }
+  if (!isSecretbox(b.blob, ATTACHMENT_MAX_CIPHERTEXT_CHARS)) {
+    return { ok: false, error: 'Ungültiger Datei-Inhalt.' };
+  }
+  if (!isSecretbox(b.filename, 4096)) {
+    return { ok: false, error: 'Ungültiger Dateiname.' };
+  }
+  const sizeBytes = typeof b.sizeBytes === 'number' ? b.sizeBytes : NaN;
+  if (
+    !Number.isInteger(sizeBytes) ||
+    sizeBytes <= 0 ||
+    sizeBytes > ATTACHMENT_MAX_CIPHERTEXT_CHARS
+  ) {
+    return { ok: false, error: 'Ungültige Dateigröße.' };
+  }
+
+  const wraps = b.wraps as Record<string, unknown> | undefined;
+  if (typeof wraps !== 'object' || wraps === null) {
+    return { ok: false, error: 'Ungültige Schlüssel-Wraps.' };
+  }
+  const entries = Object.entries(wraps);
+  if (entries.length < 3 || entries.length > 200) {
+    return { ok: false, error: 'Ungültige Empfängeranzahl.' };
+  }
+  for (const [id, val] of entries) {
+    if (!id || id.length > 64 || !isB64(val, 2048)) {
+      return { ok: false, error: 'Ungültiger Schlüssel-Wrap.' };
+    }
+  }
+  if (!(RECIPIENT_RECOVERY in wraps) || !(RECIPIENT_WHISTLEBLOWER in wraps)) {
+    return { ok: false, error: 'Recovery- und Hinweisgeber-Empfänger sind erforderlich.' };
+  }
+
+  return {
+    ok: true,
+    value: {
+      mimeType: b.mimeType,
+      blob: {
+        nonce: (b.blob as { nonce: string }).nonce,
+        content: (b.blob as { content: string }).content,
+      },
+      filename: {
+        nonce: (b.filename as { nonce: string }).nonce,
+        content: (b.filename as { content: string }).content,
+      },
+      wraps: wraps as Record<string, string>,
+      sizeBytes,
+    },
+  };
+}

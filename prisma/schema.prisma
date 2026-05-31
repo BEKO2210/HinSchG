@@ -206,13 +206,34 @@ model CaseAttachment {
   id                String   @id @default(cuid())
   caseId            String
   case              Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
-  encryptedBlobRef  String // Pfad/Ref zum verschluesselten Blob
-  encryptedFilename String
+  // Stufe-2-E2E: encryptedBlobRef + encryptedFilename sind je JSON {nonce, content}
+  // (secretbox mit demselben Inhaltsschluessel, der pro Empfaenger ueber
+  // CaseAttachmentKey verpackt ist). Der Server sieht nie Klartext.
+  encryptedBlobRef  String // secretbox(Datei) als JSON {nonce, content}
+  encryptedFilename String // secretbox(Dateiname) als JSON {nonce, content}
+  // mimeType ist deklariert + serverseitig gegen die Whitelist geprueft
+  // (Metadatum wie category). sizeBytes = Groesse des Ciphertexts.
   mimeType          String
   sizeBytes         Int
   createdAt         DateTime @default(now())
 
+  keys CaseAttachmentKey[]
+
   @@index([caseId])
+}
+
+// Stufe-2-E2E: Schluessel-Wraps fuer Multi-Recipient-Anhaenge (analog zu
+// CaseMessageKey, pro Anhang). recipient = handlerId, "RECOVERY" oder "WB".
+model CaseAttachmentKey {
+  id           String         @id @default(cuid())
+  attachmentId String
+  attachment   CaseAttachment @relation(fields: [attachmentId], references: [id], onDelete: Cascade)
+  recipient    String
+  wrappedKey   String
+  createdAt    DateTime       @default(now())
+
+  @@unique([attachmentId, recipient])
+  @@index([attachmentId])
 }
 
 // Append-only Audit-Trail

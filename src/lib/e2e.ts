@@ -162,6 +162,76 @@ export async function decryptFromRecipient(
   return s.to_string(pt);
 }
 
+// --- Dateianhaenge (Stufe 2, Multi-Recipient, binaer) ------------------------
+// Wie encryptForRecipients, aber fuer Bytes statt Strings: ein zufaelliger
+// Inhaltsschluessel verschluesselt Datei und Dateiname (je secretbox), der
+// Schluessel wird pro Empfaenger per Sealed Box verpackt.
+
+export interface EncryptedAttachment {
+  blob: { nonce: string; content: string };
+  filename: { nonce: string; content: string };
+  wraps: Record<string, string>;
+}
+
+export async function encryptAttachment(
+  fileBytes: Uint8Array,
+  filename: string,
+  recipients: Record<string, string>, // id -> publicKey(base64)
+): Promise<EncryptedAttachment> {
+  const s = await getSodium();
+  const contentKey = s.randombytes_buf(s.crypto_secretbox_KEYBYTES);
+
+  const blobNonce = s.randombytes_buf(s.crypto_secretbox_NONCEBYTES);
+  const blobCt = s.crypto_secretbox_easy(fileBytes, blobNonce, contentKey);
+
+  const nameNonce = s.randombytes_buf(s.crypto_secretbox_NONCEBYTES);
+  const nameCt = s.crypto_secretbox_easy(s.from_string(filename), nameNonce, contentKey);
+
+  const wraps: Record<string, string> = {};
+  for (const [id, pub] of Object.entries(recipients)) {
+    wraps[id] = b64(s, s.crypto_box_seal(contentKey, unb64(s, pub)));
+  }
+  return {
+    blob: { nonce: b64(s, blobNonce), content: b64(s, blobCt) },
+    filename: { nonce: b64(s, nameNonce), content: b64(s, nameCt) },
+    wraps,
+  };
+}
+
+export interface DecryptedAttachment {
+  bytes: Uint8Array;
+  filename: string;
+}
+
+/** Entschluesselt einen Anhang mit dem (Sealed-Box-)Wrap des Empfaengers. */
+export async function decryptAttachment(
+  payload: {
+    blob: { nonce: string; content: string };
+    filename: { nonce: string; content: string };
+  },
+  wrap: string,
+  publicKey: string,
+  privateKey: string,
+): Promise<DecryptedAttachment> {
+  const s = await getSodium();
+  const contentKey = s.crypto_box_seal_open(
+    unb64(s, wrap),
+    unb64(s, publicKey),
+    unb64(s, privateKey),
+  );
+  const bytes = s.crypto_secretbox_open_easy(
+    unb64(s, payload.blob.content),
+    unb64(s, payload.blob.nonce),
+    contentKey,
+  );
+  const nameBytes = s.crypto_secretbox_open_easy(
+    unb64(s, payload.filename.content),
+    unb64(s, payload.filename.nonce),
+    contentKey,
+  );
+  return { bytes, filename: s.to_string(nameBytes) };
+}
+
 // --- Token-abgeleitetes Keypaar des Hinweisgebers -----------------------------
 // Deterministisch aus dem (normalisierten) Receipt-Token. So kann die
 // Meldestelle Antworten an den Public Key verschluesseln, ohne den Token zu
