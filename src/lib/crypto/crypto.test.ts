@@ -8,6 +8,7 @@ import {
   hashToken,
   normalizeReceiptToken,
   resetMasterKeyCache,
+  tokenBlindIndex,
   verifyPassword,
   verifyToken,
 } from './index';
@@ -55,6 +56,26 @@ describe('hashToken / verifyToken', () => {
     const hash = hashToken(token);
     expect(hash).not.toContain(normalizeReceiptToken(token));
     expect(hash.startsWith('$argon2id$')).toBe(true);
+  });
+});
+
+describe('tokenBlindIndex', () => {
+  it('ist deterministisch und unabhaengig von der Formatierung', () => {
+    const token = generateReceiptToken();
+    const index = tokenBlindIndex(token);
+    expect(index).toMatch(/^[0-9a-f]{64}$/); // HMAC-SHA256 hex
+    expect(tokenBlindIndex(token.replace(/-/g, '').toLowerCase())).toBe(index);
+  });
+
+  it('liefert fuer verschiedene Tokens verschiedene Indizes', () => {
+    expect(tokenBlindIndex(generateReceiptToken())).not.toBe(
+      tokenBlindIndex(generateReceiptToken()),
+    );
+  });
+
+  it('enthaelt den Klartext-Token nicht', () => {
+    const token = generateReceiptToken();
+    expect(tokenBlindIndex(token)).not.toContain(normalizeReceiptToken(token));
   });
 });
 

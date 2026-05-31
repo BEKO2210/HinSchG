@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { clientKeyFromHeaders, rateLimit, resetRateLimitState } from './rate-limit';
+import {
+  authThrottleStatus,
+  clientKeyFromHeaders,
+  rateLimit,
+  recordAuthFailure,
+  recordAuthSuccess,
+  resetRateLimitState,
+} from './rate-limit';
 
 beforeEach(() => {
   resetRateLimitState();
@@ -46,5 +53,30 @@ describe('clientKeyFromHeaders', () => {
 
   it('liefert "unknown" ohne IP-Header', () => {
     expect(clientKeyFromHeaders(new Headers())).toBe('unknown');
+  });
+});
+
+describe('Auth-Backoff', () => {
+  it('ist initial nicht gesperrt', () => {
+    expect(authThrottleStatus('x').blocked).toBe(false);
+  });
+
+  it('sperrt nach einem Fehlversuch und steigert exponentiell', () => {
+    recordAuthFailure('x');
+    const first = authThrottleStatus('x');
+    expect(first.blocked).toBe(true);
+    expect(first.retryAfterSec).toBeGreaterThan(0);
+
+    recordAuthFailure('x');
+    const second = authThrottleStatus('x');
+    // Zweiter Fehlversuch -> laengere Sperre als der erste.
+    expect(second.retryAfterSec).toBeGreaterThanOrEqual(first.retryAfterSec);
+  });
+
+  it('setzt die Sperre nach Erfolg zurueck', () => {
+    recordAuthFailure('y');
+    expect(authThrottleStatus('y').blocked).toBe(true);
+    recordAuthSuccess('y');
+    expect(authThrottleStatus('y').blocked).toBe(false);
   });
 });
