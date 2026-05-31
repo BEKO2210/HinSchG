@@ -128,3 +128,99 @@ export function computeDeadlines(now: Date = new Date()): {
   deadlineFeedback.setMonth(deadlineFeedback.getMonth() + 3); // +3 Monate
   return { deadlineAck, deadlineFeedback };
 }
+
+// --- Stufe 2 (Ende-zu-Ende) --------------------------------------------------
+// Reservierte Empfaenger-IDs in den Schluessel-Wraps.
+export const RECIPIENT_RECOVERY = 'RECOVERY';
+export const RECIPIENT_WHISTLEBLOWER = 'WB';
+
+const B64_RE = /^[A-Za-z0-9+/]+={0,2}$/;
+
+/** Eingereichte, bereits clientseitig E2E-verschluesselte Meldung (Stufe 2). */
+export interface E2eSubmission {
+  category?: string;
+  tokenLookup: string; // clientseitig berechneter Hash (Server sieht den Token nie)
+  tokenHash: string; // zweiter clientseitiger Hash (erfuellt @unique/not-null)
+  wbPublicKey: string; // aus dem Token abgeleiteter Public Key des Hinweisgebers
+  payload: { nonce: string; content: string }; // secretbox(Inhalt)
+  wraps: Record<string, string>; // EmpfaengerID -> Sealed-Box(Inhaltsschluessel)
+}
+
+function isB64(value: unknown, maxLen: number): value is string {
+  return (
+    typeof value === 'string' && value.length > 0 && value.length <= maxLen && B64_RE.test(value)
+  );
+}
+
+/**
+ * Validiert eine clientseitig verschluesselte Stufe-2-Meldung (Shape, Base64,
+ * Pflicht-Empfaenger). Die kryptografische Korrektheit kann der Server nicht
+ * pruefen — er sieht nie Klartext oder Token. Die Zuordnung der Wrap-IDs zu
+ * echten Bearbeiter-IDs erfolgt in der Route (DB).
+ */
+export function validateE2eSubmission(
+  raw: unknown,
+): { ok: true; value: E2eSubmission } | { ok: false; error: string } {
+  if (typeof raw !== 'object' || raw === null) {
+    return { ok: false, error: 'Ungültige Anfrage.' };
+  }
+  const b = raw as Record<string, unknown>;
+
+  const tokenLookup = typeof b.tokenLookup === 'string' ? b.tokenLookup.trim() : '';
+  const tokenHash = typeof b.tokenHash === 'string' ? b.tokenHash.trim() : '';
+  if (tokenLookup.length < 16 || tokenLookup.length > 512) {
+    return { ok: false, error: 'Ungültiger tokenLookup.' };
+  }
+  if (tokenHash.length < 16 || tokenHash.length > 512) {
+    return { ok: false, error: 'Ungültiger tokenHash.' };
+  }
+  if (!isB64(b.wbPublicKey, 64)) {
+    return { ok: false, error: 'Ungültiger wbPublicKey.' };
+  }
+
+  const payload = b.payload as Record<string, unknown> | undefined;
+  if (
+    typeof payload !== 'object' ||
+    payload === null ||
+    !isB64(payload.nonce, 128) ||
+    !isB64(payload.content, 1_000_000)
+  ) {
+    return { ok: false, error: 'Ungültiger payload.' };
+  }
+
+  const wraps = b.wraps as Record<string, unknown> | undefined;
+  if (typeof wraps !== 'object' || wraps === null) {
+    return { ok: false, error: 'Ungültige wraps.' };
+  }
+  const entries = Object.entries(wraps);
+  if (entries.length < 3 || entries.length > 200) {
+    return { ok: false, error: 'Ungültige Empfängeranzahl.' };
+  }
+  for (const [id, val] of entries) {
+    if (!id || id.length > 64 || !isB64(val, 2048)) {
+      return { ok: false, error: 'Ungültiger Schlüssel-Wrap.' };
+    }
+  }
+  if (!(RECIPIENT_RECOVERY in wraps) || !(RECIPIENT_WHISTLEBLOWER in wraps)) {
+    return { ok: false, error: 'Recovery- und Hinweisgeber-Empfänger sind erforderlich.' };
+  }
+
+  let category: string | undefined;
+  const rawCategory = typeof b.category === 'string' ? b.category.trim() : '';
+  if (rawCategory) {
+    if (!CATEGORY_VALUES.has(rawCategory)) {
+      return { ok: false, error: 'Unbekannte Kategorie.' };
+    }
+    category = rawCategory;
+  }
+
+  const value: E2eSubmission = {
+    tokenLookup,
+    tokenHash,
+    wbPublicKey: b.wbPublicKey as string,
+    payload: { nonce: payload.nonce as string, content: payload.content as string },
+    wraps: wraps as Record<string, string>,
+  };
+  if (category) value.category = category;
+  return { ok: true, value };
+}

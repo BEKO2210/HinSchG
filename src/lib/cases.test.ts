@@ -1,5 +1,39 @@
 import { describe, expect, it } from 'vitest';
-import { computeDeadlines, validateReportInput } from './cases';
+import { computeDeadlines, validateE2eSubmission, validateReportInput } from './cases';
+
+const validE2e = {
+  encryptionVersion: 2,
+  category: 'fraud',
+  tokenLookup: 'a'.repeat(43),
+  tokenHash: 'b'.repeat(43),
+  wbPublicKey: 'Zm9vYmFyZm9vYmFyZm9vYmFyZm9vYmFyMzJieXRl', // 32 Byte base64
+  payload: { nonce: 'bm9uY2Vub25jZQ==', content: 'Y29udGVudA==' },
+  wraps: { RECOVERY: 'd3JhcA==', WB: 'd3JhcA==', someHandlerId: 'd3JhcA==' },
+};
+
+describe('validateE2eSubmission', () => {
+  it('akzeptiert eine gültige Stufe-2-Einreichung', () => {
+    const r = validateE2eSubmission(validE2e);
+    expect(r.ok).toBe(true);
+  });
+
+  it('verlangt RECOVERY- und WB-Empfänger', () => {
+    expect(
+      validateE2eSubmission({ ...validE2e, wraps: { WB: 'd3JhcA==', h: 'd3JhcA==' } }).ok,
+    ).toBe(false);
+    expect(
+      validateE2eSubmission({ ...validE2e, wraps: { RECOVERY: 'd3JhcA==', h: 'd3JhcA==' } }).ok,
+    ).toBe(false);
+  });
+
+  it('lehnt einen ungültigen wbPublicKey ab', () => {
+    expect(validateE2eSubmission({ ...validE2e, wbPublicKey: 'nicht base64 !!' }).ok).toBe(false);
+  });
+
+  it('lehnt fehlenden payload ab', () => {
+    expect(validateE2eSubmission({ ...validE2e, payload: { nonce: 'x' } }).ok).toBe(false);
+  });
+});
 
 describe('validateReportInput', () => {
   it('akzeptiert eine gültige Meldung und normalisiert die Felder', () => {
