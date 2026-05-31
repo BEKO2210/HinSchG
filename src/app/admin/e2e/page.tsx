@@ -20,6 +20,11 @@ export default async function E2ePage() {
   });
   const recoverySet = Boolean(office?.recoveryPublicKey);
 
+  const [handlerTotal, handlerEnrolled] = await Promise.all([
+    prisma.handler.count(),
+    prisma.handler.count({ where: { publicKey: { not: null } } }),
+  ]);
+
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 px-6 py-12">
       <header className="flex flex-col gap-2">
@@ -52,6 +57,15 @@ export default async function E2ePage() {
         ) : (
           <RecoveryKeySetup />
         )}
+      </section>
+
+      <section className="flex flex-col gap-2 rounded-md border border-slate-200 p-4 text-sm dark:border-slate-800">
+        <h2 className="text-lg font-semibold">Bearbeiter-Schlüssel</h2>
+        <p className="text-slate-600 dark:text-slate-300">
+          {handlerEnrolled} von {handlerTotal} Bearbeiter:innen haben ein Schlüsselpaar
+          eingerichtet. Erst wenn alle berechtigten Bearbeiter:innen sowie der Recovery-Schlüssel
+          vorhanden sind, können neue Meldungen Ende-zu-Ende verschlüsselt werden.
+        </p>
       </section>
 
       <footer className="border-t border-slate-200 pt-6 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
