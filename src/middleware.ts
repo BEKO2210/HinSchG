@@ -24,6 +24,9 @@ export function middleware(request: NextRequest): NextResponse {
   // --- Content-Security-Policy (nonce pro Request) -------------------------
   const nonce = btoa(crypto.randomUUID());
   const isDev = process.env.NODE_ENV !== 'production';
+  // Tor Onion Services laufen ueber HTTP (.onion) — dort darf nicht auf HTTPS
+  // hochgestuft werden, sonst ist die Seite nicht erreichbar.
+  const isOnion = (request.headers.get('host') ?? '').endsWith('.onion');
   const csp = [
     "default-src 'self'",
     "base-uri 'self'",
@@ -37,7 +40,7 @@ export function middleware(request: NextRequest): NextResponse {
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ''}`,
     "style-src 'self' 'unsafe-inline'",
     "connect-src 'self'",
-    'upgrade-insecure-requests',
+    ...(isOnion ? [] : ['upgrade-insecure-requests']),
   ].join('; ');
 
   const requestHeaders = new Headers(request.headers);

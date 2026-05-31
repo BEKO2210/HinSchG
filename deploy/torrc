@@ -1,0 +1,13 @@
+# HinSchG — Tor Onion Service (v3)
+#
+# Stellt die App zusaetzlich als .onion-Dienst bereit (Netzwerk-Anonymitaet
+# auch auf Transportebene). Der Onion-Dienst leitet auf den App-Container.
+# Die .onion-Adresse steht nach dem Start in:
+#   /var/lib/tor/hidden_service/hostname   (im Volume "tor_data")
+
+HiddenServiceDir /var/lib/tor/hidden_service/
+HiddenServiceVersion 3
+HiddenServicePort 80 app:3000
+
+# Keine SOCKS-Proxy-Funktion noetig (reiner Onion-Service).
+SocksPort 0

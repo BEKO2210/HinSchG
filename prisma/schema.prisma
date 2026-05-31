@@ -20,6 +20,13 @@ model ReportingOffice {
   slug      String   @unique
   createdAt DateTime @default(now())
 
+  // Stufe-2-E2E: Org-Recovery-Keypaar. Der oeffentliche Key ist immer ein
+  // Empfaenger (Multi-Recipient), sodass Faelle wiederhergestellt werden koennen,
+  // wenn ein Bearbeiter sein Passwort verliert. Der private Key ist mit einer
+  // separat verwahrten Org-Recovery-Passphrase verschluesselt.
+  recoveryPublicKey          String?
+  encryptedRecoveryPrivateKey String?
+
   handlers Handler[]
   cases    Case[]
 }
@@ -56,7 +63,12 @@ model Case {
   category         String?
   severity         Severity   @default(UNSET)
   status           CaseStatus @default(NEW)
-  encryptedPayload String // verschluesselter Meldungsinhalt
+  // 1 = Stufe 1 (serverseitig verschluesselt), 2 = Stufe 2 (Ende-zu-Ende).
+  encryptionVersion Int       @default(1)
+  // Stufe 2: aus dem Receipt-Token abgeleiteter Public Key des Hinweisgebers,
+  // an den die Meldestelle Antworten verschluesselt (Server kennt den Token nicht).
+  wbPublicKey      String?
+  encryptedPayload String // Stufe 1: Ciphertext; Stufe 2: secretbox(content) (Schluessel siehe CaseKey)
   deadlineAck      DateTime // Eingangsbestaetigung: +7 Tage (HinSchG)
   deadlineFeedback DateTime // Rueckmeldung Folgemassnahmen: +3 Monate (HinSchG)
   acknowledgedAt   DateTime?
@@ -67,9 +79,25 @@ model Case {
   messages      CaseMessage[]
   attachments   CaseAttachment[]
   statusHistory CaseStatusHistory[]
+  keys          CaseKey[]
 
   @@index([officeId])
   @@index([status])
+}
+
+// Stufe-2-E2E: pro Empfaenger verpackter Inhaltsschluessel der Meldung
+// (Sealed Box). recipient = handlerId oder "RECOVERY". So koennen mehrere
+// Bearbeiter denselben Fall lesen, ohne dass der Server den Schluessel kennt.
+model CaseKey {
+  id         String   @id @default(cuid())
+  caseId     String
+  case       Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  recipient  String
+  wrappedKey String
+  createdAt  DateTime @default(now())
+
+  @@unique([caseId, recipient])
+  @@index([caseId])
 }
 
 enum Severity {
@@ -95,10 +123,27 @@ model CaseMessage {
   caseId        String
   case          Case         @relation(fields: [caseId], references: [id], onDelete: Cascade)
   direction     MsgDirection
+  // Stufe 1: Ciphertext. Stufe 2 FROM_OFFICE: Sealed Box an wbPublicKey.
+  // Stufe 2 FROM_WHISTLEBLOWER: secretbox(content); Schluessel-Wraps siehe keys.
   encryptedBody String
   createdAt     DateTime     @default(now())
 
+  keys CaseMessageKey[]
+
   @@index([caseId])
+}
+
+// Stufe-2-E2E: Schluessel-Wraps fuer Multi-Recipient-Nachrichten des
+// Hinweisgebers an die Meldestelle (analog zu CaseKey, pro Nachricht).
+model CaseMessageKey {
+  id         String      @id @default(cuid())
+  messageId  String
+  message    CaseMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  recipient  String
+  wrappedKey String
+
+  @@unique([messageId, recipient])
+  @@index([messageId])
 }
 
 enum MsgDirection {

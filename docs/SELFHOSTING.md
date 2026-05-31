@@ -129,7 +129,25 @@ make up        # baut neu und startet; Migrationen laufen automatisch
 
 ---
 
-## 8. Sicherheits-Disclaimer (bitte lesen)
+## 8. Tor Onion Service (optional)
+
+Für anonymen Zugang auch auf Netzwerkebene enthält `docker-compose.prod.yml`
+einen optionalen **Tor-Onion-Service**. Er wird mit `make up` automatisch
+gestartet. Die `.onion`-Adresse anzeigen:
+
+```bash
+docker compose -f docker-compose.prod.yml exec tor cat /var/lib/tor/hidden_service/hostname
+```
+
+Diese Adresse können Sie Hinweisgeber:innen zusätzlich zur Domain bekanntgeben.
+Der Onion-Dienst leitet direkt auf die App; über `.onion` wird die CSP-Regel
+`upgrade-insecure-requests` automatisch weggelassen (Tor nutzt kein HTTPS).
+Den Schlüssel des Onion-Dienstes (Volume `tor_data`) sichern, damit die Adresse
+erhalten bleibt.
+
+---
+
+## 9. Sicherheits-Disclaimer (bitte lesen)
 
 > **Aktuelle Sicherheitsstufe: Stufe 1 — „verschlüsselt at rest + datenminimiert".**
 >
