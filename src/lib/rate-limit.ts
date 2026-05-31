@@ -68,13 +68,32 @@ export function rateLimit(key: string, limit: number, windowMs: number): RateLim
  * Die IP wird ausschließlich flüchtig für das Limiting genutzt und nirgends
  * gespeichert. Fällt auf einen gemeinsamen Schlüssel zurück, wenn keine IP
  * ermittelbar ist (dann gilt das Limit global).
+ *
+ * Sicherheit: `x-forwarded-for`/`x-real-ip` sind clientseitig fälschbar. Sie
+ * werden NUR ausgewertet, wenn die App ausdrücklich hinter einem
+ * vertrauenswürdigen Reverse-Proxy läuft (`TRUST_PROXY_HEADERS=true`, z. B. der
+ * mitgelieferte Caddy). Ohne diese Einstellung würde ein Angreifer sonst durch
+ * frei wählbare Header pro Request einen neuen Schlüssel erzeugen und das Limit
+ * umgehen — daher wird dann bewusst ein gemeinsamer Schlüssel verwendet.
+ *
+ * Aus `x-forwarded-for` wird der LETZTE (rechte) Eintrag genommen: Jeder Proxy
+ * hängt die von ihm gesehene Adresse rechts an, der vertrauenswürdige Proxy
+ * (eine Hop-Tiefe) liefert also rechts die echte Client-IP. Vom Client links
+ * eingeschmuggelte Werte werden so ignoriert.
  */
 export function clientKeyFromHeaders(headers: Headers): string {
+  if (process.env.TRUST_PROXY_HEADERS !== 'true') {
+    return 'unknown';
+  }
   const forwarded = headers.get('x-forwarded-for');
   if (forwarded) {
-    const first = forwarded.split(',')[0]?.trim();
-    if (first) {
-      return first;
+    const parts = forwarded
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean);
+    const last = parts[parts.length - 1];
+    if (last) {
+      return last;
     }
   }
   return headers.get('x-real-ip')?.trim() || 'unknown';

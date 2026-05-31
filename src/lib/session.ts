@@ -30,10 +30,21 @@ interface SignedEnvelope<T> {
   exp: number;
 }
 
+// Bekannte Platzhalter aus Beispiel-/Compose-Dateien. Diese erfüllen zwar die
+// Längenanforderung, dürfen aber niemals produktiv ein Session-Secret stellen
+// (sonst sind alle Session-Signaturen mit einem öffentlichen Wert berechenbar).
+const FORBIDDEN_SECRET_SUBSTRINGS = ['bitte-ersetzen', 'changeme', 'placeholder'];
+
 function getSessionSecret(): string {
   const secret = process.env.SESSION_SECRET;
   if (!secret || secret.length < 16) {
     throw new Error('SESSION_SECRET ist nicht gesetzt oder zu kurz (>= 16 Zeichen erforderlich).');
+  }
+  const lowered = secret.toLowerCase();
+  if (FORBIDDEN_SECRET_SUBSTRINGS.some((bad) => lowered.includes(bad))) {
+    throw new Error(
+      'SESSION_SECRET enthält einen unsicheren Platzhalterwert. Bitte ein zufälliges Secret setzen (z. B. `openssl rand -base64 48`).',
+    );
   }
   return secret;
 }

@@ -29,6 +29,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Schlägt fehl, sobald eine Abhängigkeit eine High-/Critical-Schwachstelle
+      # meldet. So fallen neue Advisories zeitnah auf (ergänzend zu Dependabot).
+      - name: Dependency-Audit (High/Critical)
+        run: npm audit --audit-level=high
+
       - name: Prisma validate
         run: npm run prisma:validate
 
