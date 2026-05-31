@@ -8,7 +8,7 @@ on:
 # Builds laufen ohne echte Secrets; Platzhalter genuegen fuer Lint/Typecheck/Build.
 env:
   DATABASE_URL: 'postgresql://hinschg:hinschg@localhost:5432/hinschg?schema=public'
-  MASTER_ENCRYPTION_KEY: 'ci-placeholder-32-byte-base64-key=========='
+  MASTER_ENCRYPTION_KEY: 'BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc='
   SESSION_SECRET: 'ci-placeholder-session-secret'
   NEXT_TELEMETRY_DISABLED: '1'
 
@@ -29,16 +29,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Phase 0: Das Schema ist bewusst leer (Modelle folgen in Phase 1), daher
-      # nur Validierung. `prisma generate` wird ergaenzt, sobald Modelle existieren.
       - name: Prisma validate
         run: npm run prisma:validate
+
+      - name: Prisma generate
+        run: npm run prisma:generate
 
       - name: Lint
         run: npm run lint
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
 
       - name: Build
         run: npm run build

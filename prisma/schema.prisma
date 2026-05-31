@@ -1,7 +1,8 @@
 // HinSchG — Prisma-Schema
-// Phase 0: nur Provider + Generator. Die Tabellen (ReportingOffice, Handler, Case,
-// CaseMessage, CaseAttachment, AuditLog, CaseStatusHistory) folgen in Phase 1
-// gemaess ARCHITECTURE.md Abschnitt 4.
+// Phase 1: Datenmodell gemaess ARCHITECTURE.md Abschnitt 4.
+//
+// Bewusst NICHT vorhanden: IP-Adressen, User-Agent-Logs, Klartext-Token,
+// Klartext-Meldungsinhalte, zwingende Hinweisgeber-Identitaet.
 
 generator client {
   provider = "prisma-client-js"
@@ -10,4 +11,134 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// Meldestelle / Mandant (MVP: ein Eintrag; spaeter Multi-Tenant)
+model ReportingOffice {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+
+  handlers Handler[]
+  cases    Case[]
+}
+
+// Bearbeiter der Meldestelle
+model Handler {
+  id                  String      @id @default(cuid())
+  officeId            String
+  office              ReportingOffice @relation(fields: [officeId], references: [id])
+  email               String      @unique
+  passwordHash        String // Argon2id
+  totpSecret          String? // verschluesselt gespeichert
+  publicKey           String? // fuer Stufe-2-E2E
+  encryptedPrivateKey String? // privater Key, mit passwort-abgeleitetem Key verschluesselt
+  role                HandlerRole @default(HANDLER)
+  createdAt           DateTime    @default(now())
+
+  @@index([officeId])
+}
+
+enum HandlerRole {
+  ADMIN // Verwaltung, kann Bearbeiter anlegen
+  HANDLER // Fallbearbeitung
+  AUDITOR // nur Lesezugriff auf Audit-Log
+}
+
+// Meldung / Fall
+model Case {
+  id               String     @id @default(cuid())
+  officeId         String
+  office           ReportingOffice @relation(fields: [officeId], references: [id])
+  tokenHash        String     @unique // Argon2id-Hash des Receipt-Tokens, NIE Klartext
+  category         String?
+  severity         Severity   @default(UNSET)
+  status           CaseStatus @default(NEW)
+  encryptedPayload String // verschluesselter Meldungsinhalt
+  deadlineAck      DateTime // Eingangsbestaetigung: +7 Tage (HinSchG)
+  deadlineFeedback DateTime // Rueckmeldung Folgemassnahmen: +3 Monate (HinSchG)
+  acknowledgedAt   DateTime?
+  feedbackSentAt   DateTime?
+  createdAt        DateTime   @default(now())
+
+  messages      CaseMessage[]
+  attachments   CaseAttachment[]
+  statusHistory CaseStatusHistory[]
+
+  @@index([officeId])
+  @@index([status])
+}
+
+enum Severity {
+  UNSET
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum CaseStatus {
+  NEW
+  IN_REVIEW
+  INFO_REQUESTED
+  ACTION_TAKEN
+  CLOSED
+  REJECTED
+}
+
+// Zwei-Wege-Kommunikation (anonym, ueber Token)
+model CaseMessage {
+  id            String       @id @default(cuid())
+  caseId        String
+  case          Case         @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  direction     MsgDirection
+  encryptedBody String
+  createdAt     DateTime     @default(now())
+
+  @@index([caseId])
+}
+
+enum MsgDirection {
+  FROM_WHISTLEBLOWER
+  FROM_OFFICE
+}
+
+model CaseAttachment {
+  id                String   @id @default(cuid())
+  caseId            String
+  case              Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  encryptedBlobRef  String // Pfad/Ref zum verschluesselten Blob
+  encryptedFilename String
+  mimeType          String
+  sizeBytes         Int
+  createdAt         DateTime @default(now())
+
+  @@index([caseId])
+}
+
+// Append-only Audit-Trail
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorType String // "HANDLER" | "SYSTEM" | "WHISTLEBLOWER"
+  actorId   String?
+  action    String // z. B. "CASE_VIEWED", "STATUS_CHANGED", "ACK_SENT"
+  caseId    String?
+  metadata  Json? // keine PII
+  createdAt DateTime @default(now())
+
+  @@index([caseId])
+  @@index([createdAt])
+}
+
+model CaseStatusHistory {
+  id         String      @id @default(cuid())
+  caseId     String
+  case       Case        @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  fromStatus CaseStatus?
+  toStatus   CaseStatus
+  changedBy  String // handlerId
+  createdAt  DateTime    @default(now())
+
+  @@index([caseId])
 }

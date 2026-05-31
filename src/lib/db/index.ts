@@ -1,13 +1,21 @@
-// HinSchG — Datenbank-Modul
+// HinSchG — Prisma-Client-Singleton
 //
-// Phase 0: nur Platzhalter. In Phase 1 entsteht hier das Prisma-Client-Singleton
-// (siehe ARCHITECTURE.md Abschnitt 4), das in Entwicklung HMR-sicher ist:
-//
-//   import { PrismaClient } from '@prisma/client';
-//   const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
-//   export const prisma = globalForPrisma.prisma ?? new PrismaClient();
-//   if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
-//
-// Erst nach dem Anlegen der Modelle in prisma/schema.prisma aktivieren.
+// In der Entwicklung verhindert das Cachen am globalen Objekt, dass durch
+// Hot-Reload zahlreiche PrismaClient-Instanzen (und DB-Verbindungen) entstehen.
+// Siehe ARCHITECTURE.md Abschnitt 4.
 
-export {};
+import { PrismaClient } from '@prisma/client';
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'warn', 'error'] : ['warn', 'error'],
+  });
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma;
+}

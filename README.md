@@ -61,22 +61,25 @@ erhalten; `docker compose down -v` loescht auch die Daten).
 
 ```bash
 npm install
-cp .env.example .env          # DATABASE_URL auf localhost anpassen
-npm run prisma:validate       # Phase 0: Schema validieren (Modelle folgen in Phase 1)
-npm run dev                   # http://localhost:3000
+cp .env.example .env                            # Werte anpassen (DATABASE_URL, Secrets, Seed-Admin)
+npm run prisma:migrate                           # Migration anwenden + Prisma-Client generieren
+SEED_ADMIN_PASSWORD="$(openssl rand -base64 24)" npm run prisma:seed   # Demo-Meldestelle + Admin
+npm run dev                                      # http://localhost:3000
 ```
 
 Nuetzliche Skripte:
 
-| Befehl                    | Zweck                                 |
-| ------------------------- | ------------------------------------- |
-| `npm run dev`             | Entwicklungsserver                    |
-| `npm run build`           | Produktions-Build                     |
-| `npm run lint`            | ESLint                                |
-| `npm run typecheck`       | TypeScript-Pruefung (strict)          |
-| `npm run format`          | Prettier (schreibend)                 |
-| `npm run prisma:validate` | Prisma-Schema validieren              |
-| `npm run prisma:migrate`  | Migration in der Entwicklung anwenden |
+| Befehl                    | Zweck                                       |
+| ------------------------- | ------------------------------------------- |
+| `npm run dev`             | Entwicklungsserver                          |
+| `npm run build`           | Produktions-Build                           |
+| `npm run lint`            | ESLint                                      |
+| `npm run typecheck`       | TypeScript-Pruefung (strict)                |
+| `npm test`                | Unit-Tests (Vitest)                         |
+| `npm run format`          | Prettier (schreibend)                       |
+| `npm run prisma:validate` | Prisma-Schema validieren                    |
+| `npm run prisma:migrate`  | Migration in der Entwicklung anwenden       |
+| `npm run prisma:seed`     | Demo-Meldestelle + Admin-Bearbeiter anlegen |
 
 ---
 

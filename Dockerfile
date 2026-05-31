@@ -14,13 +14,11 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Phase 0: Schema ist leer, daher kein `prisma generate` (folgt mit den Modellen
-# in Phase 1). Nur validieren und bauen.
 ENV NEXT_TELEMETRY_DISABLED=1
-# Platzhalter nur fuer Build-Zeit-Validierung/Build; zur Laufzeit kommt der echte
-# Wert via docker-compose/Environment.
+# Platzhalter nur fuer Build-Zeit (Prisma liest die URL, baut aber keine
+# Verbindung auf); zur Laufzeit kommt der echte Wert via docker-compose/Environment.
 ENV DATABASE_URL="postgresql://build:build@localhost:5432/build?schema=public"
-RUN npx prisma validate
+RUN npx prisma generate
 RUN npm run build
 
 # ---- Stage 3: Runtime -------------------------------------------------------
