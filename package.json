@@ -18,6 +18,7 @@
     "prisma:validate": "prisma validate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "prisma db seed",
+    "purge:cases": "tsx scripts/purge-cases.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

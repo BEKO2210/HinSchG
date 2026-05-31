@@ -39,8 +39,11 @@ export async function POST(
     return NextResponse.json({ ok: true, unchanged: true });
   }
 
+  // closedAt steuert die Loeschfrist: bei CLOSED/REJECTED setzen, sonst zuruecksetzen.
+  const closedAt = status === 'CLOSED' || status === 'REJECTED' ? new Date() : null;
+
   await prisma.$transaction(async (tx) => {
-    await tx.case.update({ where: { id: existing.id }, data: { status } });
+    await tx.case.update({ where: { id: existing.id }, data: { status, closedAt } });
     await tx.caseStatusHistory.create({
       data: {
         caseId: existing.id,

@@ -80,6 +80,7 @@ Nützliche Skripte:
 | `npm run prisma:validate` | Prisma-Schema validieren                    |
 | `npm run prisma:migrate`  | Migration in der Entwicklung anwenden       |
 | `npm run prisma:seed`     | Demo-Meldestelle + Admin-Bearbeiter anlegen |
+| `npm run purge:cases`     | Abgelaufene geschlossene Fälle löschen      |
 
 ---
 

@@ -61,6 +61,7 @@ model Case {
   deadlineFeedback DateTime // Rueckmeldung Folgemassnahmen: +3 Monate (HinSchG)
   acknowledgedAt   DateTime?
   feedbackSentAt   DateTime?
+  closedAt         DateTime? // gesetzt bei Status CLOSED/REJECTED; Basis fuer Loeschfristen
   createdAt        DateTime   @default(now())
 
   messages      CaseMessage[]
