@@ -50,7 +50,7 @@ export function AcknowledgeButton({
       >
         {submitting ? 'Wird bestätigt …' : 'Eingang bestätigen'}
       </button>
-      {error && <span className="text-sm text-red-600 dark:text-red-400">{error}</span>}
+      {error && <span className="text-sm text-red-700 dark:text-red-400">{error}</span>}
     </span>
   );
 }

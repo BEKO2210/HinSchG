@@ -38,7 +38,7 @@ export default async function OfficesPage() {
   const stripeOn = isStripeConfigured();
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-6 py-12">
+    <main id="hauptinhalt" tabIndex={-1} className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-6 py-12">
       <header className="flex flex-col gap-2">
         <Link
           href="/admin"
@@ -66,15 +66,15 @@ export default async function OfficesPage() {
                 <span className="flex flex-col">
                   <span className="font-medium">
                     {office.name}{' '}
-                    <span className="font-mono text-xs text-slate-400">/m/{office.slug}</span>
+                    <span className="font-mono text-xs text-slate-500 dark:text-slate-400">/m/{office.slug}</span>
                   </span>
                   <span className="text-xs text-slate-500 dark:text-slate-400">
                     {office._count.handlers} Bearbeiter:innen · {office._count.cases} Fälle ·{' '}
                     <span
                       className={
                         office.active
-                          ? 'text-green-600 dark:text-green-400'
-                          : 'text-amber-600 dark:text-amber-400'
+                          ? 'text-green-700 dark:text-green-400'
+                          : 'text-amber-700 dark:text-amber-400'
                       }
                     >
                       {office.active ? 'aktiv' : 'deaktiviert'}
@@ -84,7 +84,7 @@ export default async function OfficesPage() {
                         {' · '}
                         Tarif {planLabel(office.plan)}
                         {office.planStatus === 'SUSPENDED' && (
-                          <span className="text-amber-600 dark:text-amber-400"> (gesperrt)</span>
+                          <span className="text-amber-700 dark:text-amber-400"> (gesperrt)</span>
                         )}
                       </>
                     )}

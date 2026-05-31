@@ -27,7 +27,7 @@ export default function AdminLoginPage({ searchParams }: { searchParams: { sso_e
   const ssoEnabled = isOidcEnabled();
   const ssoError = searchParams.sso_error ? SSO_ERRORS[searchParams.sso_error] : undefined;
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-6 py-12">
+    <main id="hauptinhalt" tabIndex={-1} className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-6 py-12">
       <header className="flex flex-col gap-2">
         <SiteHeader />
         <Link
@@ -58,7 +58,7 @@ export default function AdminLoginPage({ searchParams }: { searchParams: { sso_e
           >
             Mit SSO anmelden
           </a>
-          <div className="flex items-center gap-3 text-xs text-slate-400">
+          <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
             <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
             oder mit E-Mail &amp; Passwort
             <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />

@@ -3,7 +3,7 @@ import Link from 'next/link';
 /* eslint-disable-next-line @next/next/no-img-element */
 export default function HomePage() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-10 px-6 py-16">
+    <main id="hauptinhalt" tabIndex={-1} className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-10 px-6 py-16">
       <header className="flex flex-col items-center gap-5 text-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
