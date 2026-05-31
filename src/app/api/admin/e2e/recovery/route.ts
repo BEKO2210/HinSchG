@@ -6,12 +6,10 @@
 // mit einer separat verwahrten Passphrase verschluesselt und nur so gespeichert —
 // der Server sieht ihn nie im Klartext.
 
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { base64 } from '@scure/base';
 import { adminApiGuard } from '@/lib/admin-auth';
 import { prisma } from '@/lib/db';
-import { ADMIN_COOKIE, verifyAdminSession } from '@/lib/session';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -21,8 +19,6 @@ export async function POST(request: Request): Promise<NextResponse> {
   if ('error' in guard) {
     return guard.error;
   }
-  // Session erneut lesen, um die handlerId fuers Audit zu erhalten.
-  const session = verifyAdminSession(cookies().get(ADMIN_COOKIE)?.value);
 
   let raw: unknown;
   try {
@@ -53,8 +49,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  const office = await prisma.reportingOffice.findFirst({
-    orderBy: { createdAt: 'asc' },
+  // Mandantentrennung: ausschliesslich die eigene Meldestelle.
+  const office = await prisma.reportingOffice.findUnique({
+    where: { id: guard.session.o },
     select: { id: true, recoveryPublicKey: true },
   });
   if (!office) {
@@ -73,7 +70,12 @@ export async function POST(request: Request): Promise<NextResponse> {
       data: { recoveryPublicKey, encryptedRecoveryPrivateKey },
     });
     await tx.auditLog.create({
-      data: { actorType: 'HANDLER', actorId: session?.h ?? null, action: 'E2E_RECOVERY_SET' },
+      data: {
+        actorType: 'HANDLER',
+        actorId: guard.session.h,
+        action: 'E2E_RECOVERY_SET',
+        officeId: guard.session.o,
+      },
     });
   });
 

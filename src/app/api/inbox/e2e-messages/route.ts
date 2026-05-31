@@ -52,6 +52,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     select: {
       id: true,
       encryptionVersion: true,
+      officeId: true,
       office: { select: { handlers: { select: { id: true } } } },
     },
   });
@@ -90,7 +91,12 @@ export async function POST(request: Request): Promise<NextResponse> {
       })),
     });
     await tx.auditLog.create({
-      data: { actorType: 'WHISTLEBLOWER', action: 'WB_MESSAGE_ADDED', caseId: found.id },
+      data: {
+        actorType: 'WHISTLEBLOWER',
+        action: 'WB_MESSAGE_ADDED',
+        caseId: found.id,
+        officeId: found.officeId,
+      },
     });
   });
 

@@ -26,8 +26,8 @@ export async function GET(
     return guard.error;
   }
 
-  const found = await prisma.case.findUnique({
-    where: { id: params.id },
+  const found = await prisma.case.findFirst({
+    where: { id: params.id, officeId: guard.session.o },
     select: {
       id: true,
       encryptionVersion: true,
@@ -84,8 +84,8 @@ export async function POST(
   const caseWraps = (body.caseWraps ?? {}) as Record<string, unknown>;
   const messageWraps = (body.messageWraps ?? {}) as Record<string, Record<string, unknown>>;
 
-  const found = await prisma.case.findUnique({
-    where: { id: params.id },
+  const found = await prisma.case.findFirst({
+    where: { id: params.id, officeId: guard.session.o },
     select: {
       id: true,
       encryptionVersion: true,
@@ -143,6 +143,7 @@ export async function POST(
         actorId: guard.session.h,
         action: 'CASE_RECOVERED',
         caseId: found.id,
+        officeId: guard.session.o,
         metadata: { regrantedHandlers: regranted },
       },
     });

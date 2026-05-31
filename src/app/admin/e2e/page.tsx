@@ -12,17 +12,18 @@ export const metadata: Metadata = {
 };
 
 export default async function E2ePage() {
-  requireAdminSession(['ADMIN']);
+  const session = requireAdminSession(['ADMIN']);
 
-  const office = await prisma.reportingOffice.findFirst({
-    orderBy: { createdAt: 'asc' },
+  // Mandantentrennung: ausschliesslich die eigene Meldestelle.
+  const office = await prisma.reportingOffice.findUnique({
+    where: { id: session.o },
     select: { recoveryPublicKey: true },
   });
   const recoverySet = Boolean(office?.recoveryPublicKey);
 
   const [handlerTotal, handlerEnrolled] = await Promise.all([
-    prisma.handler.count(),
-    prisma.handler.count({ where: { publicKey: { not: null } } }),
+    prisma.handler.count({ where: { officeId: session.o } }),
+    prisma.handler.count({ where: { officeId: session.o, publicKey: { not: null } } }),
   ]);
 
   return (

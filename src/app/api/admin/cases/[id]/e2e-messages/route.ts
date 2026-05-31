@@ -32,8 +32,8 @@ export async function POST(
   }
   const { payload, wraps } = validation.value;
 
-  const found = await prisma.case.findUnique({
-    where: { id: params.id },
+  const found = await prisma.case.findFirst({
+    where: { id: params.id, officeId: guard.session.o },
     select: {
       id: true,
       encryptionVersion: true,
@@ -87,6 +87,7 @@ export async function POST(
         actorId: guard.session.h,
         action: 'OFFICE_MESSAGE_ADDED',
         caseId: found.id,
+        officeId: guard.session.o,
       },
     });
   });

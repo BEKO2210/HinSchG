@@ -115,6 +115,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           actorType: 'WHISTLEBLOWER',
           action: 'CASE_CREATED',
           caseId: newCase.id,
+          officeId: office.id,
           // Bewusst keine PII, kein Token, kein Inhalt — nur die Klassifizierung.
           metadata: { category: category ?? null },
         },
@@ -229,6 +230,7 @@ async function handleE2eSubmission(raw: unknown): Promise<NextResponse> {
           actorType: 'WHISTLEBLOWER',
           action: 'CASE_CREATED',
           caseId: newCase.id,
+          officeId: office.id,
           metadata: { category: category ?? null, v: 2 },
         },
       });

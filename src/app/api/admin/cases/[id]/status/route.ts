@@ -28,8 +28,8 @@ export async function POST(
     return NextResponse.json({ error: 'Unbekannter Status.' }, { status: 400 });
   }
 
-  const existing = await prisma.case.findUnique({
-    where: { id: params.id },
+  const existing = await prisma.case.findFirst({
+    where: { id: params.id, officeId: guard.session.o },
     select: { id: true, status: true },
   });
   if (!existing) {
@@ -58,6 +58,7 @@ export async function POST(
         actorId: guard.session.h,
         action: 'STATUS_CHANGED',
         caseId: existing.id,
+        officeId: guard.session.o,
         metadata: { from: existing.status, to: status },
       },
     });

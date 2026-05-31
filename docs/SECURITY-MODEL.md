@@ -111,6 +111,16 @@ Audit-Metadaten; Klartext-Privatkeys in der DB; fehlende Rollendurchsetzung.
   Recovery-Passphrase verloren, ist ein Fall nicht wiederherstellbar — daher
   Recovery-Passphrase sicher verwahren und mehrere Bearbeiter:innen einbinden.
 - **Rate-Limiting** ist nicht instanzenübergreifend.
+- **Mandantentrennung (Multi-Tenant, Phase 9a):** Jede Bearbeiter-Session ist an
+  genau eine Meldestelle gebunden (`officeId` im signierten Cookie, `session.o`).
+  Alle Admin-Lese-/Schreibzugriffe sind serverseitig auf diese `officeId`
+  gescopt (Fälle, Bearbeiter:innen, Audit-Trail, E2E-/Recovery-Endpunkte). Ein
+  direkter Zugriff auf eine fremde Fall-ID liefert 404 statt Daten. Signierte
+  Alt-Sessions ohne `officeId` werden verworfen (Re-Login erzwungen). Belegt durch
+  Unit-Tests (`session.test.ts`) und einen Browser-Cross-Tenant-Test
+  (`e2e/flows.spec.ts`). **Offen (Phase 9b):** mandantenspezifisches öffentliches
+  Routing (`/m/[slug]`) — derzeit nutzt die öffentliche Meldestrecke die
+  Standard-Meldestelle.
 - **Metadaten** sind nicht Ende-zu-Ende-verschlüsselt.
 - **Anhänge** (CaseAttachment) sind im Datenmodell vorgesehen, aber noch nicht
   implementiert.

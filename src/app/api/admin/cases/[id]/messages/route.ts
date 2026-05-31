@@ -42,8 +42,8 @@ export async function POST(
     );
   }
 
-  const existing = await prisma.case.findUnique({
-    where: { id: params.id },
+  const existing = await prisma.case.findFirst({
+    where: { id: params.id, officeId: guard.session.o },
     select: { id: true },
   });
   if (!existing) {
@@ -64,6 +64,7 @@ export async function POST(
         actorId: guard.session.h,
         action: 'OFFICE_MESSAGE_ADDED',
         caseId: existing.id,
+        officeId: guard.session.o,
       },
     });
   });

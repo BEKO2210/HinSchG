@@ -44,8 +44,8 @@ describe('getAdminSession', () => {
   });
 
   it('liefert die Session bei gültigem Cookie', () => {
-    cookieStore.value = createAdminSession('h_1', 'ADMIN').value;
-    expect(getAdminSession()).toEqual({ h: 'h_1', r: 'ADMIN' });
+    cookieStore.value = createAdminSession('h_1', 'ADMIN', 'office_1').value;
+    expect(getAdminSession()).toEqual({ h: 'h_1', r: 'ADMIN', o: 'office_1' });
   });
 
   it('liefert null für eine fremde (Inbox-)Session', () => {
@@ -63,14 +63,14 @@ describe('adminApiGuard', () => {
   });
 
   it('lässt jede Rolle ohne Rollenfilter passieren', () => {
-    cookieStore.value = createAdminSession('h_2', 'AUDITOR').value;
+    cookieStore.value = createAdminSession('h_2', 'AUDITOR', 'office_1').value;
     const result = adminApiGuard();
     if ('error' in result) throw new Error('session erwartet');
-    expect(result.session).toEqual({ h: 'h_2', r: 'AUDITOR' });
+    expect(result.session).toEqual({ h: 'h_2', r: 'AUDITOR', o: 'office_1' });
   });
 
   it('antwortet mit 403, wenn die Rolle nicht erlaubt ist', async () => {
-    cookieStore.value = createAdminSession('h_3', 'HANDLER').value;
+    cookieStore.value = createAdminSession('h_3', 'HANDLER', 'office_1').value;
     const result = adminApiGuard(['ADMIN']);
     if (!('error' in result)) throw new Error('error erwartet');
     expect(result.error.status).toBe(403);
@@ -78,10 +78,10 @@ describe('adminApiGuard', () => {
   });
 
   it('lässt eine erlaubte Rolle passieren', () => {
-    cookieStore.value = createAdminSession('h_4', 'HANDLER').value;
+    cookieStore.value = createAdminSession('h_4', 'HANDLER', 'office_1').value;
     const result = adminApiGuard(['ADMIN', 'HANDLER']);
     if ('error' in result) throw new Error('session erwartet');
-    expect(result.session).toEqual({ h: 'h_4', r: 'HANDLER' });
+    expect(result.session).toEqual({ h: 'h_4', r: 'HANDLER', o: 'office_1' });
   });
 });
 
@@ -92,14 +92,14 @@ describe('requireAdminSession', () => {
   });
 
   it('leitet bei unzureichender Rolle zum Dashboard um', () => {
-    cookieStore.value = createAdminSession('h_5', 'AUDITOR').value;
+    cookieStore.value = createAdminSession('h_5', 'AUDITOR', 'office_1').value;
     expect(() => requireAdminSession(['ADMIN'])).toThrow('REDIRECT:/admin');
     expect(redirectMock).toHaveBeenCalledWith('/admin');
   });
 
   it('liefert die Session bei passender Rolle zurück', () => {
-    cookieStore.value = createAdminSession('h_6', 'ADMIN').value;
-    expect(requireAdminSession(['ADMIN'])).toEqual({ h: 'h_6', r: 'ADMIN' });
+    cookieStore.value = createAdminSession('h_6', 'ADMIN', 'office_1').value;
+    expect(requireAdminSession(['ADMIN'])).toEqual({ h: 'h_6', r: 'ADMIN', o: 'office_1' });
     expect(redirectMock).not.toHaveBeenCalled();
   });
 });

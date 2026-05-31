@@ -1,26 +1,24 @@
 // HinSchG — API: Bearbeiter anlegen (nur ADMIN)
 //
 // Rolle wird serverseitig erzwungen. Der neue Bearbeiter richtet seine TOTP-2FA
-// beim ersten Login selbst ein.
+// beim ersten Login selbst ein. Mandantentrennung: der neue Bearbeiter gehoert
+// zwingend zur Meldestelle (officeId) des anlegenden Admins.
 
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { adminApiGuard } from '@/lib/admin-auth';
 import { hashPassword } from '@/lib/crypto';
 import { prisma } from '@/lib/db';
 import { validateHandlerInput } from '@/lib/handlers';
-import { ADMIN_COOKIE, verifyAdminSession } from '@/lib/session';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const session = verifyAdminSession(cookies().get(ADMIN_COOKIE)?.value);
-  if (!session) {
-    return NextResponse.json({ error: 'Nicht angemeldet.' }, { status: 401 });
+  const guard = adminApiGuard(['ADMIN']);
+  if ('error' in guard) {
+    return guard.error;
   }
-  if (session.r !== 'ADMIN') {
-    return NextResponse.json({ error: 'Keine Berechtigung.' }, { status: 403 });
-  }
+  const session = guard.session;
 
   let raw: unknown;
   try {
@@ -35,15 +33,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
   const { email, password, role } = validation.value;
 
-  // Office des anlegenden Admins ermitteln.
-  const admin = await prisma.handler.findUnique({
-    where: { id: session.h },
-    select: { officeId: true },
-  });
-  if (!admin) {
-    return NextResponse.json({ error: 'Konto nicht gefunden.' }, { status: 401 });
-  }
-
+  // E-Mail ist global eindeutig (Login erfolgt ohne Mandantenkontext per E-Mail).
   const existing = await prisma.handler.findUnique({ where: { email }, select: { id: true } });
   if (existing) {
     return NextResponse.json(
@@ -55,8 +45,9 @@ export async function POST(request: Request): Promise<NextResponse> {
   let created: { id: string };
   try {
     created = await prisma.$transaction(async (tx) => {
+      // Neuer Bearbeiter gehoert zwingend zur Meldestelle des anlegenden Admins.
       const handler = await tx.handler.create({
-        data: { email, passwordHash: hashPassword(password), role, officeId: admin.officeId },
+        data: { email, passwordHash: hashPassword(password), role, officeId: session.o },
         select: { id: true },
       });
       await tx.auditLog.create({
@@ -64,6 +55,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           actorType: 'HANDLER',
           actorId: session.h,
           action: 'HANDLER_CREATED',
+          officeId: session.o,
           metadata: { role, handlerId: handler.id },
         },
       });

@@ -41,8 +41,9 @@ export async function POST(
     );
   }
 
-  const target = await prisma.handler.findUnique({
-    where: { id: params.id },
+  // Mandantentrennung: nur Bearbeiter:innen der eigenen Meldestelle.
+  const target = await prisma.handler.findFirst({
+    where: { id: params.id, officeId: guard.session.o },
     select: { id: true },
   });
   if (!target) {
@@ -59,6 +60,7 @@ export async function POST(
         actorType: 'HANDLER',
         actorId: guard.session.h,
         action: 'HANDLER_RESET',
+        officeId: guard.session.o,
         metadata: { handlerId: target.id },
       },
     });

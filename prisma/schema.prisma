@@ -13,7 +13,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Meldestelle / Mandant (MVP: ein Eintrag; spaeter Multi-Tenant)
+// Meldestelle / Mandant. Multi-Tenant (Phase 9a): mehrere Meldestellen je
+// Instanz; Bearbeiter:innen, Faelle und Audit-Eintraege gehoeren je genau einer
+// Meldestelle. Die Zugriffstrennung wird serverseitig ueber officeId erzwungen.
 model ReportingOffice {
   id        String   @id @default(cuid())
   name      String
@@ -172,10 +174,15 @@ model AuditLog {
   actorId   String?
   action    String // z. B. "CASE_VIEWED", "STATUS_CHANGED", "ACK_SENT"
   caseId    String?
+  // Mandantentrennung: jeder Eintrag gehoert zu genau einer Meldestelle, damit
+  // der Audit-Trail je Mandant gefiltert werden kann. Nullable fuer alte
+  // Eintraege und instanzweite Systemereignisse ohne Office-Bezug.
+  officeId  String?
   metadata  Json? // keine PII
   createdAt DateTime @default(now())
 
   @@index([caseId])
+  @@index([officeId])
   @@index([createdAt])
 }
 
