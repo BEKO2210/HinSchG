@@ -16,6 +16,10 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    // Nur Unit-Tests unter src/ ausführen. Playwright-Specs (e2e/*.spec.ts)
+    // werden von `npm run test:e2e` gefahren und dürfen hier nicht eingesammelt
+    // werden (sie nutzen @playwright/test statt vitest).
+    include: ['src/**/*.{test,spec}.{ts,tsx}'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'text-summary', 'html'],
