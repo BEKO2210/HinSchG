@@ -63,7 +63,7 @@ export default async function AuditPage({
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 px-6 py-12">
+    <main id="hauptinhalt" tabIndex={-1} className="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 px-6 py-12">
       <header className="flex flex-col gap-2">
         <Link
           href="/admin"
@@ -142,7 +142,7 @@ export default async function AuditPage({
                   <td className="py-2 pr-4">
                     {entry.actorType}
                     {entry.actorId ? (
-                      <span className="font-mono text-xs text-slate-400">
+                      <span className="font-mono text-xs text-slate-500 dark:text-slate-400">
                         {' '}
                         {entry.actorId.slice(0, 8)}
                       </span>

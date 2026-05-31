@@ -19,6 +19,15 @@ export default function RootLayout({
   return (
     <html lang="de">
       <body className="min-h-screen bg-white text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+        {/* Sprungmarke (WCAG 2.4.1 / BITV): erlaubt Tastatur- und Screenreader-
+            Nutzer:innen, wiederkehrende Navigation zu überspringen. Sichtbar nur
+            bei Fokus; zielt auf das <main id="hauptinhalt"> jeder Seite. */}
+        <a
+          href="#hauptinhalt"
+          className="sr-only rounded-md bg-brand px-4 py-2 text-white focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50"
+        >
+          Zum Inhalt springen
+        </a>
         {children}
       </body>
     </html>

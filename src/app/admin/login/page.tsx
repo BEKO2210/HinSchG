@@ -33,7 +33,7 @@ export default async function AdminLoginPage({
   const { sso_error } = await searchParams;
   const ssoError = sso_error ? SSO_ERRORS[sso_error] : undefined;
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-6 py-12">
+    <main id="hauptinhalt" tabIndex={-1} className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-6 py-12">
       <header className="flex flex-col gap-2">
         <SiteHeader />
         <Link
@@ -64,7 +64,7 @@ export default async function AdminLoginPage({
           >
             Mit SSO anmelden
           </a>
-          <div className="flex items-center gap-3 text-xs text-slate-400">
+          <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
             <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
             oder mit E-Mail &amp; Passwort
             <span className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />

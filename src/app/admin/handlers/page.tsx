@@ -28,7 +28,7 @@ export default async function HandlersPage() {
   });
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-6 py-12">
+    <main id="hauptinhalt" tabIndex={-1} className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-6 py-12">
       <header className="flex flex-col gap-2">
         <Link
           href="/admin"
@@ -50,8 +50,8 @@ export default async function HandlersPage() {
                 <span
                   className={
                     handler.totpSecret
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-amber-600 dark:text-amber-400'
+                      ? 'text-green-700 dark:text-green-400'
+                      : 'text-amber-700 dark:text-amber-400'
                   }
                 >
                   {handler.totpSecret ? '2FA aktiv' : '2FA ausstehend'}
@@ -59,8 +59,8 @@ export default async function HandlersPage() {
                 <span
                   className={
                     handler.publicKey
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-amber-600 dark:text-amber-400'
+                      ? 'text-green-700 dark:text-green-400'
+                      : 'text-amber-700 dark:text-amber-400'
                   }
                 >
                   {handler.publicKey ? 'Schlüssel aktiv' : 'Schlüssel ausstehend'}
