@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { InboxLogin } from '@/components/InboxLogin';
 import { InboxReplyForm } from '@/components/InboxReplyForm';
 import { LogoutButton } from '@/components/LogoutButton';
+import { SiteHeader } from '@/components/SiteHeader';
 import { caseStatusLabel } from '@/lib/case-status';
 import { decryptPayload } from '@/lib/crypto';
 import { prisma } from '@/lib/db';
@@ -71,6 +72,7 @@ export default async function PostfachPage() {
     return (
       <Shell>
         <header className="flex flex-col gap-3">
+          <SiteHeader />
           <Link
             href="/"
             className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"

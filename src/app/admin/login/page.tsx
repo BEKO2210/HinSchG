@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { AdminLogin } from '@/components/AdminLogin';
+import { SiteHeader } from '@/components/SiteHeader';
 import { getAdminSession } from '@/lib/admin-auth';
 
 export const runtime = 'nodejs';
@@ -18,6 +19,7 @@ export default function AdminLoginPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-6 py-12">
       <header className="flex flex-col gap-2">
+        <SiteHeader />
         <Link
           href="/"
           className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"

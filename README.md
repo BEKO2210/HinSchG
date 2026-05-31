@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="./public/logo.png" alt="HinSchG — Hinweisgeber- & Compliance-Plattform" width="460" />
+
 # HinSchG
 
 **Die quelloffene Hinweisgeber- & Compliance-Plattform für das deutsche Hinweisgeberschutzgesetz**
