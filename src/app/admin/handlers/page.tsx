@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { CreateHandlerForm } from '@/components/CreateHandlerForm';
+import { HandlerResetForm } from '@/components/HandlerResetForm';
 import { requireAdminSession } from '@/lib/admin-auth';
 import { prisma } from '@/lib/db';
 
@@ -16,7 +17,14 @@ export default async function HandlersPage() {
 
   const handlers = await prisma.handler.findMany({
     orderBy: { createdAt: 'asc' },
-    select: { id: true, email: true, role: true, totpSecret: true, createdAt: true },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      totpSecret: true,
+      publicKey: true,
+      createdAt: true,
+    },
   });
 
   return (
@@ -48,6 +56,16 @@ export default async function HandlersPage() {
                 >
                   {handler.totpSecret ? '2FA aktiv' : '2FA ausstehend'}
                 </span>
+                <span
+                  className={
+                    handler.publicKey
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-amber-600 dark:text-amber-400'
+                  }
+                >
+                  {handler.publicKey ? 'Schlüssel aktiv' : 'Schlüssel ausstehend'}
+                </span>
+                <HandlerResetForm handlerId={handler.id} email={handler.email} />
               </span>
             </li>
           ))}
