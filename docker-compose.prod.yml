@@ -84,7 +84,21 @@ services:
       app:
         condition: service_healthy
 
+  # Optionaler Tor Onion Service (Netzwerk-Anonymitaet auf Transportebene).
+  # Die .onion-Adresse steht nach dem Start in:
+  #   docker compose -f docker-compose.prod.yml exec tor cat /var/lib/tor/hidden_service/hostname
+  tor:
+    image: osminogin/tor-simple:0.4.8.12
+    restart: unless-stopped
+    volumes:
+      - ./deploy/torrc:/etc/tor/torrc:ro
+      - tor_data:/var/lib/tor
+    depends_on:
+      app:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   caddy_data:
   caddy_config:
+  tor_data:
