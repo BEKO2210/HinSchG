@@ -7,21 +7,28 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { isValidOfficeSlug } from '@/lib/office';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function GET(): Promise<NextResponse> {
-  const office = await prisma.reportingOffice.findFirst({
-    orderBy: { createdAt: 'asc' },
-    select: {
-      recoveryPublicKey: true,
-      handlers: {
-        where: { publicKey: { not: null } },
-        select: { id: true, publicKey: true },
-      },
+export async function GET(request: Request): Promise<NextResponse> {
+  // Multi-Tenant (Phase 9b): Mit ?slug=... werden die Empfaenger einer
+  // bestimmten Meldestelle geliefert; ohne Slug die Standard-Meldestelle.
+  const slugParam = new URL(request.url).searchParams.get('slug');
+  const select = {
+    recoveryPublicKey: true,
+    handlers: {
+      where: { publicKey: { not: null } },
+      select: { id: true, publicKey: true },
     },
-  });
+  } as const;
+  const office =
+    slugParam !== null
+      ? isValidOfficeSlug(slugParam)
+        ? await prisma.reportingOffice.findUnique({ where: { slug: slugParam }, select })
+        : null
+      : await prisma.reportingOffice.findFirst({ orderBy: { createdAt: 'asc' }, select });
 
   // Stufe-2-Submit ist standardmaessig aktiv und nur durch explizites
   // E2E_SUBMIT_ENABLED=false abschaltbar. Ist E2E nicht eingerichtet (kein

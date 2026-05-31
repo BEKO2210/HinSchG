@@ -28,7 +28,7 @@ interface Recipients {
   handlers: { id: string; publicKey: string }[];
 }
 
-export function ReportForm() {
+export function ReportForm({ officeSlug }: { officeSlug?: string }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SubmitResult | null>(null);
@@ -71,6 +71,7 @@ export function ReportForm() {
         wbPublicKey: wb.publicKey,
         payload: { nonce: ct.nonce, content: ct.content },
         wraps: ct.wraps,
+        ...(officeSlug ? { officeSlug } : {}),
       }),
     });
     const body = (await response.json().catch(() => ({}))) as Partial<SubmitResult> & {
@@ -108,7 +109,9 @@ export function ReportForm() {
 
     try {
       // Ist Ende-zu-Ende-Verschlüsselung eingerichtet und freigeschaltet?
-      const rec = (await fetch('/api/office/recipients')
+      const rec = (await fetch(
+        `/api/office/recipients${officeSlug ? `?slug=${encodeURIComponent(officeSlug)}` : ''}`,
+      )
         .then((r) => r.json())
         .catch(() => null)) as Recipients | null;
 
@@ -127,7 +130,7 @@ export function ReportForm() {
       const response = await fetch('/api/cases', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(content),
+        body: JSON.stringify({ ...content, ...(officeSlug ? { officeSlug } : {}) }),
       });
       const body = (await response.json().catch(() => ({}))) as Partial<SubmitResult> & {
         error?: string;
