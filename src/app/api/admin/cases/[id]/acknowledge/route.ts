@@ -26,7 +26,7 @@ export async function POST(
 
   const existing = await prisma.case.findUnique({
     where: { id: params.id },
-    select: { id: true, acknowledgedAt: true },
+    select: { id: true, acknowledgedAt: true, encryptionVersion: true },
   });
   if (!existing) {
     return NextResponse.json({ error: 'Fall nicht gefunden.' }, { status: 404 });
@@ -37,13 +37,18 @@ export async function POST(
 
   await prisma.$transaction(async (tx) => {
     await tx.case.update({ where: { id: existing.id }, data: { acknowledgedAt: new Date() } });
-    await tx.caseMessage.create({
-      data: {
-        caseId: existing.id,
-        direction: 'FROM_OFFICE',
-        encryptedBody: encryptPayload(ACK_MESSAGE),
-      },
-    });
+    // Stufe 1: automatische (serverseitig verschlüsselte) Eingangsbestätigung an
+    // den Hinweisgeber. Bei Stufe 2 kann der Server keine Nachricht für den
+    // Hinweisgeber verschlüsseln; der Eingang wird über den Status sichtbar.
+    if (existing.encryptionVersion === 1) {
+      await tx.caseMessage.create({
+        data: {
+          caseId: existing.id,
+          direction: 'FROM_OFFICE',
+          encryptedBody: encryptPayload(ACK_MESSAGE),
+        },
+      });
+    }
     await tx.auditLog.create({
       data: {
         actorType: 'HANDLER',

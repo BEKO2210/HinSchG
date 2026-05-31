@@ -224,3 +224,54 @@ export function validateE2eSubmission(
   if (category) value.category = category;
   return { ok: true, value };
 }
+
+/** Clientseitig verschluesselte Stufe-2-Nachricht (Multi-Recipient). */
+export interface E2eMessage {
+  payload: { nonce: string; content: string };
+  wraps: Record<string, string>;
+}
+
+/**
+ * Validiert eine E2E-Nachricht (Antwort der Meldestelle bzw. des Hinweisgebers):
+ * Payload + Schluessel-Wraps. Pflicht-Empfaenger RECOVERY und WB.
+ */
+export function validateE2eMessage(
+  raw: unknown,
+): { ok: true; value: E2eMessage } | { ok: false; error: string } {
+  if (typeof raw !== 'object' || raw === null) {
+    return { ok: false, error: 'Ungültige Anfrage.' };
+  }
+  const b = raw as Record<string, unknown>;
+  const payload = b.payload as Record<string, unknown> | undefined;
+  if (
+    typeof payload !== 'object' ||
+    payload === null ||
+    !isB64(payload.nonce, 128) ||
+    !isB64(payload.content, 1_000_000)
+  ) {
+    return { ok: false, error: 'Ungültiger payload.' };
+  }
+  const wraps = b.wraps as Record<string, unknown> | undefined;
+  if (typeof wraps !== 'object' || wraps === null) {
+    return { ok: false, error: 'Ungültige wraps.' };
+  }
+  const entries = Object.entries(wraps);
+  if (entries.length < 3 || entries.length > 200) {
+    return { ok: false, error: 'Ungültige Empfängeranzahl.' };
+  }
+  for (const [id, val] of entries) {
+    if (!id || id.length > 64 || !isB64(val, 2048)) {
+      return { ok: false, error: 'Ungültiger Schlüssel-Wrap.' };
+    }
+  }
+  if (!(RECIPIENT_RECOVERY in wraps) || !(RECIPIENT_WHISTLEBLOWER in wraps)) {
+    return { ok: false, error: 'Recovery- und Hinweisgeber-Empfänger sind erforderlich.' };
+  }
+  return {
+    ok: true,
+    value: {
+      payload: { nonce: payload.nonce as string, content: payload.content as string },
+      wraps: wraps as Record<string, string>,
+    },
+  };
+}
