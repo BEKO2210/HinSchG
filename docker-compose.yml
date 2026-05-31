@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hinschg}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hinschg}
+      POSTGRES_DB: ${POSTGRES_DB:-hinschg}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-hinschg} -d ${POSTGRES_DB:-hinschg}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    # Port nur lokal exponieren; in Produktion ggf. weglassen.
+    ports:
+      - '5432:5432'
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://hinschg:hinschg@db:5432/hinschg?schema=public}
+      MASTER_ENCRYPTION_KEY: ${MASTER_ENCRYPTION_KEY:-bitte-ersetzen-32-byte-base64-key}
+      SESSION_SECRET: ${SESSION_SECRET:-bitte-ersetzen-langes-zufaelliges-secret}
+      NODE_ENV: production
+    ports:
+      - '3000:3000'
+
+volumes:
+  postgres_data:

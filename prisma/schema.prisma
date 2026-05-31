@@ -1,0 +1,13 @@
+// HinSchG — Prisma-Schema
+// Phase 0: nur Provider + Generator. Die Tabellen (ReportingOffice, Handler, Case,
+// CaseMessage, CaseAttachment, AuditLog, CaseStatusHistory) folgen in Phase 1
+// gemaess ARCHITECTURE.md Abschnitt 4.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
