@@ -39,67 +39,67 @@ afterEach(() => {
 });
 
 describe('getAdminSession', () => {
-  it('liefert null ohne Cookie', () => {
-    expect(getAdminSession()).toBeNull();
+  it('liefert null ohne Cookie', async () => {
+    expect(await getAdminSession()).toBeNull();
   });
 
-  it('liefert die Session bei gültigem Cookie', () => {
+  it('liefert die Session bei gültigem Cookie', async () => {
     cookieStore.value = createAdminSession('h_1', 'ADMIN', 'office_1').value;
-    expect(getAdminSession()).toEqual({ h: 'h_1', r: 'ADMIN', o: 'office_1' });
+    expect(await getAdminSession()).toEqual({ h: 'h_1', r: 'ADMIN', o: 'office_1' });
   });
 
-  it('liefert null für eine fremde (Inbox-)Session', () => {
+  it('liefert null für eine fremde (Inbox-)Session', async () => {
     cookieStore.value = createInboxSession('case_1').value;
-    expect(getAdminSession()).toBeNull();
+    expect(await getAdminSession()).toBeNull();
   });
 });
 
 describe('adminApiGuard', () => {
   it('antwortet mit 401 ohne Session', async () => {
-    const result = adminApiGuard();
+    const result = await adminApiGuard();
     if (!('error' in result)) throw new Error('error erwartet');
     expect(result.error.status).toBe(401);
     await expect(result.error.json()).resolves.toEqual({ error: 'Nicht angemeldet.' });
   });
 
-  it('lässt jede Rolle ohne Rollenfilter passieren', () => {
+  it('lässt jede Rolle ohne Rollenfilter passieren', async () => {
     cookieStore.value = createAdminSession('h_2', 'AUDITOR', 'office_1').value;
-    const result = adminApiGuard();
+    const result = await adminApiGuard();
     if ('error' in result) throw new Error('session erwartet');
     expect(result.session).toEqual({ h: 'h_2', r: 'AUDITOR', o: 'office_1' });
   });
 
   it('antwortet mit 403, wenn die Rolle nicht erlaubt ist', async () => {
     cookieStore.value = createAdminSession('h_3', 'HANDLER', 'office_1').value;
-    const result = adminApiGuard(['ADMIN']);
+    const result = await adminApiGuard(['ADMIN']);
     if (!('error' in result)) throw new Error('error erwartet');
     expect(result.error.status).toBe(403);
     await expect(result.error.json()).resolves.toEqual({ error: 'Keine Berechtigung.' });
   });
 
-  it('lässt eine erlaubte Rolle passieren', () => {
+  it('lässt eine erlaubte Rolle passieren', async () => {
     cookieStore.value = createAdminSession('h_4', 'HANDLER', 'office_1').value;
-    const result = adminApiGuard(['ADMIN', 'HANDLER']);
+    const result = await adminApiGuard(['ADMIN', 'HANDLER']);
     if ('error' in result) throw new Error('session erwartet');
     expect(result.session).toEqual({ h: 'h_4', r: 'HANDLER', o: 'office_1' });
   });
 });
 
 describe('requireAdminSession', () => {
-  it('leitet ohne Session zum Login um', () => {
-    expect(() => requireAdminSession()).toThrow('REDIRECT:/admin/login');
+  it('leitet ohne Session zum Login um', async () => {
+    await expect(requireAdminSession()).rejects.toThrow('REDIRECT:/admin/login');
     expect(redirectMock).toHaveBeenCalledWith('/admin/login');
   });
 
-  it('leitet bei unzureichender Rolle zum Dashboard um', () => {
+  it('leitet bei unzureichender Rolle zum Dashboard um', async () => {
     cookieStore.value = createAdminSession('h_5', 'AUDITOR', 'office_1').value;
-    expect(() => requireAdminSession(['ADMIN'])).toThrow('REDIRECT:/admin');
+    await expect(requireAdminSession(['ADMIN'])).rejects.toThrow('REDIRECT:/admin');
     expect(redirectMock).toHaveBeenCalledWith('/admin');
   });
 
-  it('liefert die Session bei passender Rolle zurück', () => {
+  it('liefert die Session bei passender Rolle zurück', async () => {
     cookieStore.value = createAdminSession('h_6', 'ADMIN', 'office_1').value;
-    expect(requireAdminSession(['ADMIN'])).toEqual({ h: 'h_6', r: 'ADMIN', o: 'office_1' });
+    expect(await requireAdminSession(['ADMIN'])).toEqual({ h: 'h_6', r: 'ADMIN', o: 'office_1' });
     expect(redirectMock).not.toHaveBeenCalled();
   });
 });

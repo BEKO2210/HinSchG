@@ -15,9 +15,9 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   _request: Request,
-  { params }: { params: { id: string; attachmentId: string } },
+  { params }: { params: Promise<{ id: string; attachmentId: string }> },
 ): Promise<NextResponse> {
-  const guard = adminApiGuard(['ADMIN', 'HANDLER']);
+  const guard = await adminApiGuard(['ADMIN', 'HANDLER']);
   if ('error' in guard) {
     return guard.error;
   }
@@ -25,8 +25,8 @@ export async function GET(
   // Anhang muss zum angegebenen Fall UND zur Meldestelle der Session gehoeren.
   const attachment = await prisma.caseAttachment.findFirst({
     where: {
-      id: params.attachmentId,
-      caseId: params.id,
+      id: (await params).attachmentId,
+      caseId: (await params).id,
       case: { officeId: guard.session.o },
     },
     select: {

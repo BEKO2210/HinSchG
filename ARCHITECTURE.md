@@ -54,7 +54,7 @@ Repo-/Arbeitsname: *HinSchG* · Lizenz: AGPLv3 · GitHub: `BEKO2210/HinSchG`
 
 | Schicht | Technologie | Begründung |
 |---|---|---|
-| Frontend + API | Next.js 14 (App Router) + TypeScript | Ein Repo, SSR + API Routes, gut mit Claude Code baubar |
+| Frontend + API | Next.js 15 (App Router) + TypeScript | Ein Repo, SSR + API Routes, gut mit Claude Code baubar |
 | Styling | Tailwind CSS | Minimalistisch, schnell, konsistent |
 | DB | PostgreSQL 16 | Robust, Standard, self-hostbar |
 | ORM | Prisma | Typsicheres Schema + Migrations |

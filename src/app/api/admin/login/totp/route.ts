@@ -31,7 +31,7 @@ const TOTP_LIMIT = 10;
 const TOTP_WINDOW_MS = 15 * 60 * 1000;
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const pre = verifyAdminPreAuth(cookies().get(ADMIN_PREAUTH_COOKIE)?.value);
+  const pre = verifyAdminPreAuth((await cookies()).get(ADMIN_PREAUTH_COOKIE)?.value);
   if (!pre) {
     return NextResponse.json(
       { error: 'Sitzung abgelaufen. Bitte erneut anmelden.' },

@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function E2ePage() {
-  const session = requireAdminSession(['ADMIN']);
+  const session = await requireAdminSession(['ADMIN']);
 
   // Mandantentrennung: ausschliesslich die eigene Meldestelle.
   const office = await prisma.reportingOffice.findUnique({

@@ -15,7 +15,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const guard = adminApiGuard(['ADMIN']);
+  const guard = await adminApiGuard(['ADMIN']);
   if ('error' in guard) {
     return guard.error;
   }

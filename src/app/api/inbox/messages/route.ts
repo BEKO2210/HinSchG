@@ -19,7 +19,7 @@ const MSG_LIMIT = 20;
 const MSG_WINDOW_MS = 10 * 60 * 1000;
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const caseId = verifyInboxSession(cookies().get(INBOX_COOKIE)?.value);
+  const caseId = verifyInboxSession((await cookies()).get(INBOX_COOKIE)?.value);
   if (!caseId) {
     return NextResponse.json(
       { error: 'Nicht angemeldet oder Session abgelaufen.' },

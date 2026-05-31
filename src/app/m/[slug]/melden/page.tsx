@@ -17,12 +17,12 @@ export const metadata: Metadata = {
 
 // Oeffentliche, mandantenspezifische Melde-Strecke (Multi-Tenant, Phase 9b).
 // Der Slug adressiert genau eine Meldestelle; unbekannte Slugs -> 404.
-export default async function TenantMeldenPage({ params }: { params: { slug: string } }) {
-  if (!isValidOfficeSlug(params.slug)) {
+export default async function TenantMeldenPage({ params }: { params: Promise<{ slug: string }> }) {
+  if (!isValidOfficeSlug((await params).slug)) {
     notFound();
   }
   const office = await prisma.reportingOffice.findUnique({
-    where: { slug: params.slug },
+    where: { slug: (await params).slug },
     select: { name: true, slug: true, active: true, planStatus: true },
   });
   // Unbekannte, deaktivierte oder (bei aktivem Billing) gesperrte Meldestellen

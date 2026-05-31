@@ -27,7 +27,7 @@ function isValidEmail(value: string): boolean {
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const guard = adminApiGuard(['SUPERADMIN']);
+  const guard = await adminApiGuard(['SUPERADMIN']);
   if ('error' in guard) {
     return guard.error;
   }

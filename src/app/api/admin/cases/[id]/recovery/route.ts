@@ -19,15 +19,15 @@ const isWrap = (v: unknown): v is string =>
 
 export async function GET(
   _request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  const guard = adminApiGuard(['ADMIN']);
+  const guard = await adminApiGuard(['ADMIN']);
   if ('error' in guard) {
     return guard.error;
   }
 
   const found = await prisma.case.findFirst({
-    where: { id: params.id, officeId: guard.session.o },
+    where: { id: (await params).id, officeId: guard.session.o },
     select: {
       id: true,
       encryptionVersion: true,
@@ -67,9 +67,9 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  const guard = adminApiGuard(['ADMIN']);
+  const guard = await adminApiGuard(['ADMIN']);
   if ('error' in guard) {
     return guard.error;
   }
@@ -85,7 +85,7 @@ export async function POST(
   const messageWraps = (body.messageWraps ?? {}) as Record<string, Record<string, unknown>>;
 
   const found = await prisma.case.findFirst({
-    where: { id: params.id, officeId: guard.session.o },
+    where: { id: (await params).id, officeId: guard.session.o },
     select: {
       id: true,
       encryptionVersion: true,

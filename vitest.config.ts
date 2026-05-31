@@ -16,6 +16,10 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    // Argon2id ist absichtlich rechenintensiv; die KDF-Tests können das
+    // Standard-Timeout (5 s) je nach Runner-Overhead überschreiten. Höheres
+    // Limit, ohne Sicherheitsparameter oder Assertions abzuschwächen.
+    testTimeout: 30_000,
     // Nur Unit-Tests unter src/ ausführen. Playwright-Specs (e2e/*.spec.ts)
     // werden von `npm run test:e2e` gefahren und dürfen hier nicht eingesammelt
     // werden (sie nutzen @playwright/test statt vitest).

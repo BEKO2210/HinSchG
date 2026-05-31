@@ -68,7 +68,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 }
 
 export default async function PostfachPage() {
-  const caseId = verifyInboxSession(cookies().get(INBOX_COOKIE)?.value);
+  const caseId = verifyInboxSession((await cookies()).get(INBOX_COOKIE)?.value);
 
   if (!caseId) {
     return (

@@ -15,9 +15,9 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  const guard = adminApiGuard(['SUPERADMIN']);
+  const guard = await adminApiGuard(['SUPERADMIN']);
   if ('error' in guard) {
     return guard.error;
   }
@@ -34,7 +34,7 @@ export async function POST(
   }
 
   const office = await prisma.reportingOffice.findUnique({
-    where: { id: params.id },
+    where: { id: (await params).id },
     select: { id: true },
   });
   if (!office) {

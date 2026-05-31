@@ -16,9 +16,9 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   _request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  const caseId = verifyInboxSession(cookies().get(INBOX_COOKIE)?.value);
+  const caseId = verifyInboxSession((await cookies()).get(INBOX_COOKIE)?.value);
   if (!caseId) {
     return NextResponse.json(
       { error: 'Nicht angemeldet oder Session abgelaufen.' },
@@ -28,7 +28,7 @@ export async function GET(
 
   // Bindung an den Fall der Session (verhindert Zugriff auf fremde Anhaenge).
   const attachment = await prisma.caseAttachment.findFirst({
-    where: { id: params.id, caseId },
+    where: { id: (await params).id, caseId },
     select: {
       id: true,
       caseId: true,

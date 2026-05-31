@@ -15,7 +15,7 @@ Compliance-Plattform nach HinSchG / EU-Richtlinie 2019/1937.
 
 ## Tech-Stack (fix)
 
-- Next.js 14 App Router + TypeScript (strict)
+- Next.js 15 App Router + TypeScript (strict)
 - PostgreSQL 16 + Prisma
 - Tailwind CSS, minimalistisches, klares Design
 - Argon2id (argon2), TOTP (otplib), libsodium-wrappers

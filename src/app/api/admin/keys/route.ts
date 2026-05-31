@@ -18,11 +18,11 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const guard = adminApiGuard(['ADMIN', 'HANDLER']);
+  const guard = await adminApiGuard(['ADMIN', 'HANDLER']);
   if ('error' in guard) {
     return guard.error;
   }
-  const session = verifyAdminSession(cookies().get(ADMIN_COOKIE)?.value);
+  const session = verifyAdminSession((await cookies()).get(ADMIN_COOKIE)?.value);
   if (!session) {
     return NextResponse.json({ error: 'Nicht angemeldet.' }, { status: 401 });
   }
