@@ -10,6 +10,7 @@ export function OfficeRowActions({
   active,
   plan,
   managedProcessing,
+  processingRequest,
   billingEnabled,
   stripeConfigured,
 }: {
@@ -18,6 +19,7 @@ export function OfficeRowActions({
   active: boolean;
   plan: Plan;
   managedProcessing: boolean;
+  processingRequest: 'NONE' | 'REQUESTED' | 'ACTIVE' | 'DECLINED';
   billingEnabled: boolean;
   stripeConfigured: boolean;
 }) {
@@ -42,6 +44,29 @@ export function OfficeRowActions({
         return;
       }
       setError(b.error ?? 'Checkout konnte nicht gestartet werden.');
+    } catch {
+      setError('Netzwerkfehler.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Phase 11a: Bearbeitungs-Anfrage freischalten/ablehnen (SUPERADMIN).
+  async function decideProcessing(decision: 'approve' | 'decline') {
+    setError(null);
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/admin/offices/${officeId}/processing`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decision }),
+      });
+      if (res.ok) {
+        router.refresh();
+      } else {
+        const b = (await res.json().catch(() => ({}))) as { error?: string };
+        setError(b.error ?? 'Entscheidung fehlgeschlagen.');
+      }
     } catch {
       setError('Netzwerkfehler.');
     } finally {
@@ -80,6 +105,30 @@ export function OfficeRowActions({
 
   return (
     <div className="flex flex-col items-end gap-1">
+      {processingRequest === 'REQUESTED' && (
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-amber-600 dark:text-amber-400">Bearbeitung angefragt</span>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => decideProcessing('approve')}
+            className="text-green-600 underline hover:text-green-700 dark:text-green-400"
+          >
+            Freischalten
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => decideProcessing('decline')}
+            className="text-slate-500 underline hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+          >
+            Ablehnen
+          </button>
+        </div>
+      )}
+      {managedProcessing && processingRequest === 'ACTIVE' && (
+        <span className="text-xs text-green-600 dark:text-green-400">Bearbeitung aktiv</span>
+      )}
       <div className="flex items-center gap-3 text-xs">
         <button
           type="button"

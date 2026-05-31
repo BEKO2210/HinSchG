@@ -40,6 +40,12 @@ model ReportingOffice {
   // wird vom Plattformbetreiber uebernommen. Rein organisatorisches Flag
   // (Aufpreis-Leistung); aendert die technische Zugriffstrennung nicht.
   managedProcessing    Boolean @default(false)
+  // Phase 11a: Self-Service-Status der Anfrage fuer die managedProcessing-Leistung.
+  // NONE = nicht angefragt, REQUESTED = vom Office-ADMIN angefragt, ACTIVE = vom
+  // SUPERADMIN freigeschaltet, DECLINED = abgelehnt. Aendert KEINE Zugriffsrechte;
+  // die eigentliche Bearbeitung erfolgt durch eine normale HANDLER-Bearbeiter:in
+  // (Partner-Anwält:in) der Meldestelle mit eigenem Schluessel.
+  processingRequest    ProcessingRequestStatus @default(NONE)
   createdAt DateTime @default(now())
 
   // Stufe-2-E2E: Org-Recovery-Keypaar. Der oeffentliche Key ist immer ein
@@ -80,6 +86,14 @@ enum Plan {
 enum PlanStatus {
   ACTIVE
   SUSPENDED
+}
+
+// Phase 11a: Status der Self-Service-Anfrage fuer die managedProcessing-Leistung.
+enum ProcessingRequestStatus {
+  NONE
+  REQUESTED
+  ACTIVE
+  DECLINED
 }
 
 enum HandlerRole {
