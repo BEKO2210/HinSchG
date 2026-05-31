@@ -12,7 +12,13 @@
 
 import { NextResponse } from 'next/server';
 import { encryptPayload, generateReceiptToken, hashToken, tokenBlindIndex } from '@/lib/crypto';
-import { computeDeadlines, validateReportInput } from '@/lib/cases';
+import {
+  RECIPIENT_RECOVERY,
+  RECIPIENT_WHISTLEBLOWER,
+  computeDeadlines,
+  validateE2eSubmission,
+  validateReportInput,
+} from '@/lib/cases';
 import { prisma } from '@/lib/db';
 import { clientKeyFromHeaders, rateLimit } from '@/lib/rate-limit';
 
@@ -50,6 +56,15 @@ export async function POST(request: Request): Promise<NextResponse> {
     raw = await request.json();
   } catch {
     return NextResponse.json({ error: 'Ungültiges JSON.' }, { status: 400 });
+  }
+
+  // Stufe 2 (Ende-zu-Ende): Inhalt ist bereits clientseitig verschlüsselt.
+  if (
+    typeof raw === 'object' &&
+    raw !== null &&
+    (raw as Record<string, unknown>).encryptionVersion === 2
+  ) {
+    return handleE2eSubmission(raw);
   }
 
   const validation = validateReportInput(raw);
@@ -119,6 +134,115 @@ export async function POST(request: Request): Promise<NextResponse> {
   return NextResponse.json(
     {
       receiptToken,
+      deadlineAck: deadlineAck.toISOString(),
+      deadlineFeedback: deadlineFeedback.toISOString(),
+    },
+    { status: 201 },
+  );
+}
+
+/**
+ * Stufe-2-Meldung speichern: Der Inhalt ist bereits clientseitig
+ * Ende-zu-Ende-verschlüsselt. Der Server sieht weder Klartext noch Token; er
+ * legt nur Ciphertext, Schlüssel-Wraps und den (clientseitig berechneten)
+ * Lookup ab. Der Receipt-Token wurde im Browser erzeugt und verbleibt dort.
+ */
+async function handleE2eSubmission(raw: unknown): Promise<NextResponse> {
+  const validation = validateE2eSubmission(raw);
+  if (!validation.ok) {
+    return NextResponse.json({ error: validation.error }, { status: 400 });
+  }
+  const { category, tokenLookup, tokenHash, wbPublicKey, payload, wraps } = validation.value;
+
+  const office = await prisma.reportingOffice.findFirst({
+    orderBy: { createdAt: 'asc' },
+    select: {
+      id: true,
+      recoveryPublicKey: true,
+      handlers: { where: { publicKey: { not: null } }, select: { id: true } },
+    },
+  });
+  if (!office) {
+    return NextResponse.json({ error: 'Es ist keine Meldestelle konfiguriert.' }, { status: 503 });
+  }
+  if (!office.recoveryPublicKey || office.handlers.length === 0) {
+    return NextResponse.json(
+      { error: 'Ende-zu-Ende-Verschlüsselung ist noch nicht eingerichtet.' },
+      { status: 409 },
+    );
+  }
+
+  // Jede Wrap-Empfänger-ID muss RECOVERY, WB oder eine echte Bearbeiter-ID des
+  // Office sein; mindestens ein Bearbeiter muss adressiert sein.
+  const validIds = new Set<string>([
+    RECIPIENT_RECOVERY,
+    RECIPIENT_WHISTLEBLOWER,
+    ...office.handlers.map((h) => h.id),
+  ]);
+  let handlerRecipients = 0;
+  for (const id of Object.keys(wraps)) {
+    if (!validIds.has(id)) {
+      return NextResponse.json(
+        { error: 'Unbekannter Empfänger im Schlüssel-Wrap.' },
+        { status: 400 },
+      );
+    }
+    if (id !== RECIPIENT_RECOVERY && id !== RECIPIENT_WHISTLEBLOWER) {
+      handlerRecipients += 1;
+    }
+  }
+  if (handlerRecipients === 0) {
+    return NextResponse.json(
+      { error: 'Mindestens ein Bearbeiter muss adressiert sein.' },
+      { status: 400 },
+    );
+  }
+
+  const { deadlineAck, deadlineFeedback } = computeDeadlines();
+  const encryptedPayload = JSON.stringify(payload);
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const newCase = await tx.case.create({
+        data: {
+          officeId: office.id,
+          encryptionVersion: 2,
+          tokenHash,
+          tokenLookup,
+          wbPublicKey,
+          category: category ?? null,
+          encryptedPayload,
+          deadlineAck,
+          deadlineFeedback,
+        },
+        select: { id: true },
+      });
+      await tx.caseKey.createMany({
+        data: Object.entries(wraps).map(([recipient, wrappedKey]) => ({
+          caseId: newCase.id,
+          recipient,
+          wrappedKey,
+        })),
+      });
+      await tx.auditLog.create({
+        data: {
+          actorType: 'WHISTLEBLOWER',
+          action: 'CASE_CREATED',
+          caseId: newCase.id,
+          metadata: { category: category ?? null, v: 2 },
+        },
+      });
+    });
+  } catch {
+    return NextResponse.json(
+      { error: 'Die Meldung konnte nicht gespeichert werden.' },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json(
+    {
+      ok: true,
       deadlineAck: deadlineAck.toISOString(),
       deadlineFeedback: deadlineFeedback.toISOString(),
     },
