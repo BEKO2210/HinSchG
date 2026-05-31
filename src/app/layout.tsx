@@ -1,6 +1,10 @@
 import type { Metadata } from 'next';
 import './globals.css';
 
+// Dynamisches Rendering erzwingen, damit die nonce-basierte CSP (siehe
+// middleware.ts) auf jede Seite angewendet werden kann.
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'HinSchG — Hinweisgeberschutz',
   description:

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { AdminLogoutButton } from '@/components/AdminLogoutButton';
 import { DeadlineBadge } from '@/components/DeadlineBadge';
 import { requireAdminSession } from '@/lib/admin-auth';
@@ -27,6 +28,10 @@ function formatDate(value: Date): string {
 
 export default async function AdminPage() {
   const session = requireAdminSession();
+  // AUDITOR hat ausschließlich Lesezugriff auf den Audit-Trail.
+  if (session.r === 'AUDITOR') {
+    redirect('/admin/audit');
+  }
   const handler = await prisma.handler.findUnique({
     where: { id: session.h },
     select: { email: true, role: true },
@@ -77,6 +82,12 @@ export default async function AdminPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <Link
+            href="/admin/audit"
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900"
+          >
+            Audit
+          </Link>
           {session.r === 'ADMIN' && (
             <Link
               href="/admin/handlers"
