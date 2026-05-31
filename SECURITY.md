@@ -7,7 +7,7 @@ beitragen.
 ## Schwachstelle melden (Responsible Disclosure)
 
 - Bitte **keine** öffentlichen Issues für Sicherheitslücken.
-- Melden Sie Funde vertraulich an: **security@example.org** _(vor Produktivbetrieb durch eine echte Adresse ersetzen)_.
+- Melden Sie Funde vertraulich an: **belkis.aslani@gmail.com**.
 - Bitte geben Sie Reproduktionsschritte, betroffene Version/Commit und mögliche
   Auswirkungen an. Wir bestätigen den Eingang i. d. R. innerhalb von 5 Werktagen.
 - Bitte gewähren Sie eine angemessene Frist zur Behebung, bevor Sie Details
