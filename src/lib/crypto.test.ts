@@ -11,7 +11,7 @@ import {
   tokenBlindIndex,
   verifyPassword,
   verifyToken,
-} from './index';
+} from './crypto';
 
 beforeAll(() => {
   // Deterministischer, gültiger 32-Byte-Master-Key für die Tests.

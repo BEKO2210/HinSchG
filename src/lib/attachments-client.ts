@@ -9,11 +9,7 @@
 //
 // Der Server sieht nie Klartext oder Original-Dateinamen.
 
-import {
-  ALLOWED_ATTACHMENT_MIME_TYPES,
-  ATTACHMENT_MAX_PLAINTEXT_BYTES,
-  isAllowedAttachmentMime,
-} from '@/lib/cases';
+import { ATTACHMENT_MAX_PLAINTEXT_BYTES, isAllowedAttachmentMime } from '@/lib/cases';
 
 const STRIPPABLE_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 
@@ -116,5 +112,3 @@ export function triggerDownload(bytes: Uint8Array, filename: string, mimeType: s
   a.remove();
   URL.revokeObjectURL(url);
 }
-
-export const ACCEPTED_FILE_TYPES = ALLOWED_ATTACHMENT_MIME_TYPES.join(',');

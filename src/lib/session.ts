@@ -98,9 +98,6 @@ export function sessionCookieOptions(maxAgeSeconds: number) {
   };
 }
 
-/** @deprecated Alias für {@link sessionCookieOptions}. */
-export const inboxCookieOptions = sessionCookieOptions;
-
 /**
  * Cookie-Optionen für den OIDC-Flow-State. Bewusst `SameSite=lax` statt `strict`:
  * Der Callback ist eine Top-Level-Navigation, die vom IdP (fremde Origin) zurück

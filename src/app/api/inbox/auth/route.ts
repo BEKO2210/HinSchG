@@ -16,7 +16,7 @@ import {
   recordAuthFailure,
   recordAuthSuccess,
 } from '@/lib/rate-limit';
-import { INBOX_COOKIE, createInboxSession, inboxCookieOptions } from '@/lib/session';
+import { INBOX_COOKIE, createInboxSession, sessionCookieOptions } from '@/lib/session';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -90,6 +90,6 @@ export async function POST(request: Request): Promise<NextResponse> {
   recordAuthSuccess(key);
   const session = createInboxSession(caseId);
   const response = NextResponse.json({ ok: true }, { status: 200 });
-  response.cookies.set(INBOX_COOKIE, session.value, inboxCookieOptions(session.maxAgeSeconds));
+  response.cookies.set(INBOX_COOKIE, session.value, sessionCookieOptions(session.maxAgeSeconds));
   return response;
 }
