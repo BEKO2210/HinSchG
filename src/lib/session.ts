@@ -101,6 +101,17 @@ export function sessionCookieOptions(maxAgeSeconds: number) {
 /** @deprecated Alias für {@link sessionCookieOptions}. */
 export const inboxCookieOptions = sessionCookieOptions;
 
+/**
+ * Cookie-Optionen für den OIDC-Flow-State. Bewusst `SameSite=lax` statt `strict`:
+ * Der Callback ist eine Top-Level-Navigation, die vom IdP (fremde Origin) zurück
+ * auf unsere App zeigt — `strict` würde das Cookie dabei NICHT mitsenden und den
+ * Flow brechen. `lax` sendet das Cookie bei Top-Level-Navigationen, aber nicht bei
+ * Cross-Site-Subrequests, und behält httpOnly/secure bei.
+ */
+export function oidcFlowCookieOptions(maxAgeSeconds: number) {
+  return { ...sessionCookieOptions(maxAgeSeconds), sameSite: 'lax' as const };
+}
+
 // --- Postfach-Session (Hinweisgeber) ----------------------------------------
 export function createInboxSession(caseId: string): { value: string; maxAgeSeconds: number } {
   return {

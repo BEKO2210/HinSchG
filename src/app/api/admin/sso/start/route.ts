@@ -5,7 +5,7 @@
 
 import { NextResponse } from 'next/server';
 import { buildAuthorizationUrl, generatePkce, generateState, getOidcConfig } from '@/lib/oidc';
-import { OIDC_FLOW_COOKIE, createOidcFlowState, sessionCookieOptions } from '@/lib/session';
+import { OIDC_FLOW_COOKIE, createOidcFlowState, oidcFlowCookieOptions } from '@/lib/session';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -22,6 +22,6 @@ export async function GET(): Promise<NextResponse> {
 
   const flow = createOidcFlowState({ st: state, v: verifier });
   const response = NextResponse.redirect(url, { status: 302 });
-  response.cookies.set(OIDC_FLOW_COOKIE, flow.value, sessionCookieOptions(flow.maxAgeSeconds));
+  response.cookies.set(OIDC_FLOW_COOKIE, flow.value, oidcFlowCookieOptions(flow.maxAgeSeconds));
   return response;
 }
