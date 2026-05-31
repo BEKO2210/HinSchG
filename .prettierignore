@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+build
+coverage
+prisma/migrations
+package-lock.json
+LICENSE
+
+# Vorhandene Projektdokumente (nicht automatisch umformatieren)
+ARCHITECTURE.md
+HinSchG_BUILD_PROMPTS.md
