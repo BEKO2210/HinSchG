@@ -154,9 +154,11 @@ Sicherheitsmodell, Schlüsselfluss, internes Review & Audit-Scope:
 
 > ### ⚠️ Ehrlicher Sicherheits-Disclaimer
 >
-> **Aktuelle Stufe: „verschlüsselt at rest + datenminimiert".** Inhalte werden mit einem Server-Master-Key verschlüsselt gespeichert; es werden keine personenbezogenen Metadaten erhoben.
+> **Stufe 1 (Basis):** Inhalte werden mit einem Server-Master-Key verschlüsselt gespeichert; keine personenbezogenen Metadaten. Wer Datenbank **und** Master-Key besitzt, kann Inhalte technisch lesen.
 >
-> **Dies ist NICHT Zero-Knowledge / Ende-zu-Ende-Verschlüsselung.** Wer Zugriff auf Datenbank **und** Master-Key hat, kann die Inhalte technisch lesen. Echte E2E-Verschlüsselung (Stufe 2) ist als spätere Phase geplant und wird erst nach einem **externen Security-Audit** als „Zero-Knowledge" kommuniziert.
+> **Stufe 2 (Ende-zu-Ende):** standardmäßig **aktiv**, sobald ein Org-Recovery-Schlüssel und Bearbeiter-Schlüssel eingerichtet sind — neue Meldungen werden dann im Browser ver-/entschlüsselt, der Server sieht nur Ciphertext (sonst automatischer Rückfall auf Stufe 1).
+>
+> **Wichtig:** Stufe 2 ist **noch nicht extern auditiert**. Wir bezeichnen sie daher als „Ende-zu-Ende-verschlüsselt", **nicht** als „Zero-Knowledge" — dieser Begriff bleibt einem unabhängigen externen Audit vorbehalten. Details: [docs/SECURITY-MODEL.md](./docs/SECURITY-MODEL.md).
 
 ---
 

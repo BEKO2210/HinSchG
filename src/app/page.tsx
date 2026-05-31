@@ -47,11 +47,15 @@ export default function HomePage() {
         <p className="font-medium">So schützen wir Sie</p>
         <ul className="list-inside list-disc space-y-1">
           <li>Keine Speicherung von IP-Adresse, Browser-Kennung oder Identität.</li>
-          <li>Inhalte werden verschlüsselt gespeichert (Stufe 1: at rest, datenminimiert).</li>
+          <li>
+            Inhalte werden verschlüsselt gespeichert; bei eingerichteter Stufe 2 zusätzlich
+            Ende-zu-Ende im Browser.
+          </li>
           <li>Zugang ausschließlich über Ihren Zugangscode — keine Konten für Hinweisgeber.</li>
         </ul>
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          Hinweis: Dies ist noch keine Ende-zu-Ende-/Zero-Knowledge-Verschlüsselung.
+          Hinweis: Die Ende-zu-Ende-Verschlüsselung ist noch nicht extern auditiert; wir verwenden
+          den Begriff „Zero-Knowledge“ daher bewusst nicht.
         </p>
       </section>
 

@@ -23,10 +23,11 @@ export async function GET(): Promise<NextResponse> {
     },
   });
 
-  // Solange die clientseitigen Leseansichten (Office/Postfach) noch nicht
-  // vollstaendig sind, wird der E2E-Submit per Flag freigeschaltet, damit keine
-  // Faelle entstehen, die niemand lesen kann. Default: aus.
-  const submitEnabled = process.env.E2E_SUBMIT_ENABLED === 'true';
+  // Stufe-2-Submit ist standardmaessig aktiv und nur durch explizites
+  // E2E_SUBMIT_ENABLED=false abschaltbar. Ist E2E nicht eingerichtet (kein
+  // Recovery-/Bearbeiter-Schluessel), faellt die Meldestrecke automatisch auf
+  // Stufe 1 zurueck (ready=false). Hinweis: Stufe 2 ist noch nicht extern auditiert.
+  const submitEnabled = process.env.E2E_SUBMIT_ENABLED !== 'false';
 
   if (!office) {
     return NextResponse.json(

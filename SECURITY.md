@@ -27,10 +27,13 @@ Relevant sind insbesondere:
 > **Stufe 1 (Standard):** Inhalte sind **verschlüsselt at rest** und
 > datenminimiert — **nicht** Zero-Knowledge. Wer Datenbank **und** > `MASTER_ENCRYPTION_KEY` besitzt, kann Inhalte technisch lesen.
 >
-> **Stufe 2 (Ende-zu-Ende):** vorhanden und funktionsfähig, aber **standardmäßig
-> deaktiviert** (`E2E_SUBMIT_ENABLED=false`) und **noch nicht extern auditiert**.
-> Die Bezeichnung „Zero-Knowledge" wird erst nach einem **unabhängigen externen
-> Security-Audit** verwendet.
+> **Stufe 2 (Ende-zu-Ende):** funktionsfähig und **standardmäßig aktiv** — sobald
+> ein Org-Recovery-Schlüssel und mindestens ein Bearbeiter-Schlüssel eingerichtet
+> sind, werden neue Meldungen clientseitig Ende-zu-Ende verschlüsselt (sonst
+> automatischer Rückfall auf Stufe 1). Stufe 2 ist jedoch **noch nicht extern
+> auditiert**; sie wird daher als „Ende-zu-Ende-verschlüsselt" bezeichnet, **nicht**
+> als „Zero-Knowledge". Letzteres bleibt einem **unabhängigen externen
+> Security-Audit** vorbehalten.
 
 Details zu Primitiven, Schlüsselfluss, Bedrohungsmodell, Review-Befunden und
 Audit-Empfehlungen: **[docs/SECURITY-MODEL.md](./docs/SECURITY-MODEL.md)**.
