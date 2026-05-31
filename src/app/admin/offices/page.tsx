@@ -5,6 +5,7 @@ import { OfficeRowActions } from '@/components/OfficeRowActions';
 import { requireAdminSession } from '@/lib/admin-auth';
 import { prisma } from '@/lib/db';
 import { isBillingEnabled, planLabel } from '@/lib/plans';
+import { isStripeConfigured } from '@/lib/stripe';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -28,10 +29,12 @@ export default async function OfficesPage() {
       active: true,
       plan: true,
       planStatus: true,
+      managedProcessing: true,
       _count: { select: { handlers: true, cases: true } },
     },
   });
   const billingOn = isBillingEnabled();
+  const stripeOn = isStripeConfigured();
 
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-6 py-12">
@@ -91,7 +94,9 @@ export default async function OfficesPage() {
                   name={office.name}
                   active={office.active}
                   plan={office.plan}
+                  managedProcessing={office.managedProcessing}
                   billingEnabled={billingOn}
+                  stripeConfigured={stripeOn}
                 />
               </li>
             ))

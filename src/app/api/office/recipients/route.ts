@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { isValidOfficeSlug } from '@/lib/office';
+import { officeAcceptsReports } from '@/lib/plans';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -18,6 +19,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   const slugParam = new URL(request.url).searchParams.get('slug');
   const select = {
     active: true,
+    planStatus: true,
     recoveryPublicKey: true,
     handlers: {
       where: { publicKey: { not: null } },
@@ -34,8 +36,9 @@ export async function GET(request: Request): Promise<NextResponse> {
           orderBy: { createdAt: 'asc' },
           select,
         });
-  // Deaktivierte Meldestellen nehmen keine neuen Meldungen an.
-  const office = resolved && resolved.active ? resolved : null;
+  // Meldestellen, die keine neuen Meldungen annehmen (deaktiviert oder bei
+  // aktivem Billing: Abo SUSPENDED), liefern keine Empfaenger.
+  const office = resolved && officeAcceptsReports(resolved) ? resolved : null;
 
   // Stufe-2-Submit ist standardmaessig aktiv und nur durch explizites
   // E2E_SUBMIT_ENABLED=false abschaltbar. Ist E2E nicht eingerichtet (kein

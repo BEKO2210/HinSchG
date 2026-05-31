@@ -1,5 +1,14 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { canAddHandler, isBillingEnabled, isPlan, isPlanStatus, planLabel } from './plans';
+import {
+  canAddHandler,
+  isBillingEnabled,
+  isPlan,
+  isPlanStatus,
+  officeAcceptsReports,
+  planForStripePriceId,
+  planLabel,
+  stripePriceIdFor,
+} from './plans';
 
 const ORIGINAL = process.env.BILLING_ENABLED;
 afterEach(() => {
@@ -59,5 +68,51 @@ describe('canAddHandler', () => {
   it('ENTERPRISE ist unbegrenzt', () => {
     process.env.BILLING_ENABLED = 'true';
     expect(canAddHandler('ENTERPRISE', 100000)).toBe(true);
+  });
+});
+
+describe('officeAcceptsReports', () => {
+  it('deaktivierte Meldestelle akzeptiert nie', () => {
+    delete process.env.BILLING_ENABLED;
+    expect(officeAcceptsReports({ active: false, planStatus: 'ACTIVE' })).toBe(false);
+  });
+
+  it('ohne Billing ignoriert SUSPENDED (Self-Hoster nie gesperrt)', () => {
+    delete process.env.BILLING_ENABLED;
+    expect(officeAcceptsReports({ active: true, planStatus: 'SUSPENDED' })).toBe(true);
+  });
+
+  it('mit Billing sperrt SUSPENDED die öffentliche Meldestrecke', () => {
+    process.env.BILLING_ENABLED = 'true';
+    expect(officeAcceptsReports({ active: true, planStatus: 'SUSPENDED' })).toBe(false);
+    expect(officeAcceptsReports({ active: true, planStatus: 'ACTIVE' })).toBe(true);
+  });
+});
+
+describe('Stripe-Preis-Zuordnung', () => {
+  const origPro = process.env.STRIPE_PRICE_PRO;
+  const origEnt = process.env.STRIPE_PRICE_ENTERPRISE;
+  afterEach(() => {
+    if (origPro === undefined) delete process.env.STRIPE_PRICE_PRO;
+    else process.env.STRIPE_PRICE_PRO = origPro;
+    if (origEnt === undefined) delete process.env.STRIPE_PRICE_ENTERPRISE;
+    else process.env.STRIPE_PRICE_ENTERPRISE = origEnt;
+  });
+
+  it('stripePriceIdFor liest die Preise aus der Umgebung', () => {
+    process.env.STRIPE_PRICE_PRO = 'price_pro_1';
+    process.env.STRIPE_PRICE_ENTERPRISE = 'price_ent_1';
+    expect(stripePriceIdFor('PRO')).toBe('price_pro_1');
+    expect(stripePriceIdFor('ENTERPRISE')).toBe('price_ent_1');
+    expect(stripePriceIdFor('FREE')).toBeNull();
+  });
+
+  it('planForStripePriceId macht die Zuordnung rückwärts', () => {
+    process.env.STRIPE_PRICE_PRO = 'price_pro_1';
+    process.env.STRIPE_PRICE_ENTERPRISE = 'price_ent_1';
+    expect(planForStripePriceId('price_pro_1')).toBe('PRO');
+    expect(planForStripePriceId('price_ent_1')).toBe('ENTERPRISE');
+    expect(planForStripePriceId('price_unknown')).toBeNull();
+    expect(planForStripePriceId('')).toBeNull();
   });
 });

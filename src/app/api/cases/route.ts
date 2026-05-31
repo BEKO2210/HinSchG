@@ -21,26 +21,26 @@ import {
 } from '@/lib/cases';
 import { prisma } from '@/lib/db';
 import { isValidOfficeSlug } from '@/lib/office';
+import { officeAcceptsReports } from '@/lib/plans';
 import { clientKeyFromHeaders, rateLimit } from '@/lib/rate-limit';
 
 // Loest die Ziel-Meldestelle auf: mit gueltigem Slug gezielt (Multi-Tenant),
-// sonst die Standard-Meldestelle. Deaktivierte Meldestellen (active=false)
-// nehmen keine neuen Meldungen an -> null. Ungueltiger/unbekannter Slug -> null.
+// sonst die Standard-Meldestelle. Meldestellen, die keine neuen Meldungen
+// annehmen (deaktiviert oder bei aktivem Billing: Abo SUSPENDED) -> null.
+// Ungueltiger/unbekannter Slug -> null.
 async function resolveOffice(slug: unknown): Promise<{ id: string } | null> {
+  const select = { id: true, active: true, planStatus: true } as const;
   const office =
     typeof slug === 'string' && slug.length > 0
       ? isValidOfficeSlug(slug)
-        ? await prisma.reportingOffice.findUnique({
-            where: { slug },
-            select: { id: true, active: true },
-          })
+        ? await prisma.reportingOffice.findUnique({ where: { slug }, select })
         : null
       : await prisma.reportingOffice.findFirst({
           where: { active: true },
           orderBy: { createdAt: 'asc' },
-          select: { id: true, active: true },
+          select,
         });
-  if (!office || !office.active) {
+  if (!office || !officeAcceptsReports(office)) {
     return null;
   }
   return { id: office.id };

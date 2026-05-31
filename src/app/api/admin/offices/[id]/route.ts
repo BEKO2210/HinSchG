@@ -19,6 +19,7 @@ interface PatchBody {
   active?: unknown;
   plan?: unknown;
   planStatus?: unknown;
+  managedProcessing?: unknown;
 }
 
 export async function PATCH(
@@ -37,7 +38,13 @@ export async function PATCH(
     return NextResponse.json({ error: 'Ungültiges JSON.' }, { status: 400 });
   }
 
-  const data: { name?: string; active?: boolean; plan?: Plan; planStatus?: PlanStatus } = {};
+  const data: {
+    name?: string;
+    active?: boolean;
+    plan?: Plan;
+    planStatus?: PlanStatus;
+    managedProcessing?: boolean;
+  } = {};
   if (raw.name !== undefined) {
     const name = typeof raw.name === 'string' ? raw.name.trim() : '';
     if (!isValidOfficeName(name)) {
@@ -62,6 +69,12 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unbekannter Abo-Status.' }, { status: 400 });
     }
     data.planStatus = raw.planStatus;
+  }
+  if (raw.managedProcessing !== undefined) {
+    if (typeof raw.managedProcessing !== 'boolean') {
+      return NextResponse.json({ error: 'Ungültiges Bearbeitungs-Flag.' }, { status: 400 });
+    }
+    data.managedProcessing = raw.managedProcessing;
   }
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: 'Keine Änderungen angegeben.' }, { status: 400 });
@@ -88,6 +101,9 @@ export async function PATCH(
           ...(data.active !== undefined ? { active: data.active } : {}),
           ...(data.plan !== undefined ? { plan: data.plan } : {}),
           ...(data.planStatus !== undefined ? { planStatus: data.planStatus } : {}),
+          ...(data.managedProcessing !== undefined
+            ? { managedProcessing: data.managedProcessing }
+            : {}),
         },
       },
     });

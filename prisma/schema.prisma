@@ -30,6 +30,16 @@ model ReportingOffice {
   // Konfiguration sind unbegrenzt. KEINE Zahlungsdaten in diesem Modell.
   plan       Plan       @default(FREE)
   planStatus PlanStatus @default(ACTIVE)
+  // Managed-Billing (Phase 10b): Referenzen auf den Zahlungsanbieter (Stripe).
+  // Es werden AUSSCHLIESSLICH undurchsichtige Referenz-IDs gespeichert — NIE
+  // Kartendaten, Rechnungsadressen o. Ae. (die liegen beim Anbieter). Null, wenn
+  // kein Managed-Billing genutzt wird (Self-Hosting / manuelle Verwaltung).
+  stripeCustomerId     String? @unique
+  stripeSubscriptionId String? @unique
+  // Zusatzleistung: Fallbearbeitung durch befugte Personen (z. B. Anwält:innen)
+  // wird vom Plattformbetreiber uebernommen. Rein organisatorisches Flag
+  // (Aufpreis-Leistung); aendert die technische Zugriffstrennung nicht.
+  managedProcessing    Boolean @default(false)
   createdAt DateTime @default(now())
 
   // Stufe-2-E2E: Org-Recovery-Keypaar. Der oeffentliche Key ist immer ein

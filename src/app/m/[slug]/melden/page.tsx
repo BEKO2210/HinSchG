@@ -5,6 +5,7 @@ import { ReportForm } from '@/components/ReportForm';
 import { SiteHeader } from '@/components/SiteHeader';
 import { prisma } from '@/lib/db';
 import { isValidOfficeSlug } from '@/lib/office';
+import { officeAcceptsReports } from '@/lib/plans';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -22,10 +23,11 @@ export default async function TenantMeldenPage({ params }: { params: { slug: str
   }
   const office = await prisma.reportingOffice.findUnique({
     where: { slug: params.slug },
-    select: { name: true, slug: true, active: true },
+    select: { name: true, slug: true, active: true, planStatus: true },
   });
-  // Unbekannte oder deaktivierte Meldestellen sind öffentlich nicht erreichbar.
-  if (!office || !office.active) {
+  // Unbekannte, deaktivierte oder (bei aktivem Billing) gesperrte Meldestellen
+  // sind öffentlich nicht erreichbar.
+  if (!office || !officeAcceptsReports(office)) {
     notFound();
   }
 

@@ -19,6 +19,8 @@ export const AUDIT_ACTIONS = [
   'HANDLER_RESET',
   'OFFICE_CREATED',
   'OFFICE_UPDATED',
+  'BILLING_CHECKOUT_STARTED',
+  'BILLING_SUBSCRIPTION_UPDATED',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
