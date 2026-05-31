@@ -151,6 +151,14 @@ describe('SESSION_SECRET-Pflicht', () => {
     process.env.SESSION_SECRET = 'kurz';
     expect(() => createInboxSession('c')).toThrow('>= 16');
   });
+
+  it('lehnt bekannte Platzhalterwerte ab (auch wenn lang genug)', () => {
+    // Der Compose-Platzhalter ist > 16 Zeichen, darf aber nie produktiv greifen.
+    process.env.SESSION_SECRET = 'bitte-ersetzen-langes-zufaelliges-secret';
+    expect(() => createInboxSession('c')).toThrow('Platzhalter');
+    process.env.SESSION_SECRET = 'CHANGEME-CHANGEME-CHANGEME';
+    expect(() => createInboxSession('c')).toThrow('Platzhalter');
+  });
 });
 
 describe('verifyToken — kaputter Payload', () => {

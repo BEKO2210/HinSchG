@@ -14,9 +14,12 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-    # Port nur lokal exponieren; in Produktion ggf. weglassen.
+    # Nur an die Loopback-Adresse des Hosts binden (lokales Debugging), damit die
+    # DB nicht versehentlich aus dem Netz erreichbar ist. Die App selbst nutzt das
+    # interne Compose-Netz (db:5432) und braucht diese Weiterleitung nicht — in
+    # Produktion kann der Block ganz entfallen.
     ports:
-      - '5432:5432'
+      - '127.0.0.1:5432:5432'
 
   app:
     build:

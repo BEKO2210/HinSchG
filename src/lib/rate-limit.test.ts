@@ -46,25 +46,68 @@ describe('rateLimit', () => {
 });
 
 describe('clientKeyFromHeaders', () => {
-  it('nimmt die erste IP aus x-forwarded-for', () => {
-    const headers = new Headers({ 'x-forwarded-for': '203.0.113.7, 10.0.0.1' });
-    expect(clientKeyFromHeaders(headers)).toBe('203.0.113.7');
+  // Standard (kein vertrauenswürdiger Proxy): fälschbare Header werden ignoriert.
+  describe('ohne TRUST_PROXY_HEADERS', () => {
+    const prev = process.env.TRUST_PROXY_HEADERS;
+    beforeEach(() => {
+      delete process.env.TRUST_PROXY_HEADERS;
+    });
+    afterEach(() => {
+      if (prev === undefined) delete process.env.TRUST_PROXY_HEADERS;
+      else process.env.TRUST_PROXY_HEADERS = prev;
+    });
+
+    it('ignoriert x-forwarded-for und liefert "unknown" (kein Bypass möglich)', () => {
+      const headers = new Headers({
+        'x-forwarded-for': '203.0.113.7',
+        'x-real-ip': '198.51.100.4',
+      });
+      expect(clientKeyFromHeaders(headers)).toBe('unknown');
+    });
   });
 
-  it('fällt auf x-real-ip zurück', () => {
-    expect(clientKeyFromHeaders(new Headers({ 'x-real-ip': '198.51.100.4' }))).toBe('198.51.100.4');
-  });
+  // Hinter vertrauenswürdigem Proxy: Header werden ausgewertet.
+  describe('mit TRUST_PROXY_HEADERS=true', () => {
+    const prev = process.env.TRUST_PROXY_HEADERS;
+    beforeEach(() => {
+      process.env.TRUST_PROXY_HEADERS = 'true';
+    });
+    afterEach(() => {
+      if (prev === undefined) delete process.env.TRUST_PROXY_HEADERS;
+      else process.env.TRUST_PROXY_HEADERS = prev;
+    });
 
-  it('liefert "unknown" ohne IP-Header', () => {
-    expect(clientKeyFromHeaders(new Headers())).toBe('unknown');
-  });
+    it('nimmt die letzte (vom Proxy angehängte) IP aus x-forwarded-for', () => {
+      // Links vom Client eingeschmuggelte Werte werden ignoriert; der
+      // vertrauenswürdige Proxy hängt die echte Client-IP rechts an.
+      const headers = new Headers({ 'x-forwarded-for': '1.2.3.4, 203.0.113.7' });
+      expect(clientKeyFromHeaders(headers)).toBe('203.0.113.7');
+    });
 
-  it('fällt bei leerem x-forwarded-for auf x-real-ip / unknown zurück', () => {
-    // Leerer erster Eintrag -> nicht als IP akzeptiert.
-    expect(clientKeyFromHeaders(new Headers({ 'x-forwarded-for': '   ' }))).toBe('unknown');
-    expect(
-      clientKeyFromHeaders(new Headers({ 'x-forwarded-for': '  ', 'x-real-ip': '198.51.100.9' })),
-    ).toBe('198.51.100.9');
+    it('ignoriert eine vom Client gefälschte einzelne IP nicht fälschbar nach links', () => {
+      // Selbst wenn nur ein gefälschter Wert ankommt, ist das hinter dem Proxy
+      // genau dessen Beobachtung — Spoofing ändert nur den linken Teil der Kette.
+      const headers = new Headers({ 'x-forwarded-for': '9.9.9.9, 198.51.100.1' });
+      expect(clientKeyFromHeaders(headers)).toBe('198.51.100.1');
+    });
+
+    it('fällt auf x-real-ip zurück', () => {
+      expect(clientKeyFromHeaders(new Headers({ 'x-real-ip': '198.51.100.4' }))).toBe(
+        '198.51.100.4',
+      );
+    });
+
+    it('liefert "unknown" ohne IP-Header', () => {
+      expect(clientKeyFromHeaders(new Headers())).toBe('unknown');
+    });
+
+    it('fällt bei leerem x-forwarded-for auf x-real-ip / unknown zurück', () => {
+      // Leerer erster Eintrag -> nicht als IP akzeptiert.
+      expect(clientKeyFromHeaders(new Headers({ 'x-forwarded-for': '   ' }))).toBe('unknown');
+      expect(
+        clientKeyFromHeaders(new Headers({ 'x-forwarded-for': '  ', 'x-real-ip': '198.51.100.9' })),
+      ).toBe('198.51.100.9');
+    });
   });
 });
 

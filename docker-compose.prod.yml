@@ -47,6 +47,10 @@ services:
     env_file: .env
     environment:
       NODE_ENV: production
+      # Läuft hinter dem vertrauenswürdigen Caddy-Reverse-Proxy (unten), der
+      # x-forwarded-for selbst setzt — daher dürfen die Proxy-Header fürs
+      # IP-basierte Rate-Limiting ausgewertet werden.
+      TRUST_PROXY_HEADERS: 'true'
     depends_on:
       db:
         condition: service_healthy
