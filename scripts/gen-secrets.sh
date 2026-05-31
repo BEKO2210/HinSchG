@@ -40,6 +40,11 @@ DATABASE_URL=postgresql://hinschg:${POSTGRES_PASSWORD}@db:5432/hinschg?schema=pu
 MASTER_ENCRYPTION_KEY=${MASTER_ENCRYPTION_KEY}
 SESSION_SECRET=${SESSION_SECRET}
 
+# --- Ende-zu-Ende-Verschluesselung (Stufe 2) ---------------------------------
+# Standardmaessig aktiv (Rueckfall auf Stufe 1, solange keine Schluessel
+# eingerichtet sind). Noch nicht extern auditiert. Mit "false" abschaltbar.
+E2E_SUBMIT_ENABLED=true
+
 # --- Aufbewahrung ------------------------------------------------------------
 CASE_RETENTION_DAYS=0
 EOF

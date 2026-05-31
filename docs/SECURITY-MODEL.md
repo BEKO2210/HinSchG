@@ -40,7 +40,7 @@ Vierergruppen).
 2. Postfach-Login: Blind-Index-Lookup → Argon2id-Verify.
 3. Server kann Inhalte entschlüsseln (Master-Key) — bewusst, klar kommuniziert.
 
-### Stufe 2 — Ende-zu-Ende (optional, `E2E_SUBMIT_ENABLED=true`)
+### Stufe 2 — Ende-zu-Ende (standardmäßig aktiv; `E2E_SUBMIT_ENABLED=false` schaltet ab)
 
 - **Schlüssel:** Jede:r Bearbeiter:in erzeugt im Browser ein X25519-Keypaar; der
   private Schlüssel wird mit dem Passwort verschlüsselt (`encryptedPrivateKey`),
@@ -96,7 +96,13 @@ Audit-Metadaten; Klartext-Privatkeys in der DB; fehlende Rollendurchsetzung.
 
 ## 5. Known Limitations
 
-- **Stufe 2 ist nicht extern auditiert** und standardmäßig deaktiviert.
+- **Stufe 2 ist nicht extern auditiert** (standardmäßig aktiv, sobald
+  eingerichtet; daher „Ende-zu-Ende", nicht „Zero-Knowledge").
+- **Datenverlust-Risiko ohne Recovery-Use-Flow (F5):** Verlieren alle adressierten
+  Bearbeiter:innen ihren Schlüssel/ihr Passwort, ist ein Fall aktuell nur mit der
+  separat verwahrten Recovery-Passphrase wiederherstellbar — der dafür nötige
+  In-App-Use-Flow fehlt noch. Empfehlung: Recovery-Passphrase sicher verwahren und
+  mehrere Bearbeiter:innen einbinden.
 - **Recovery-Use-Flow** fehlt (nur Einrichtung vorhanden).
 - **Re-Wrap** für neu hinzugefügte Bearbeiter:innen fehlt (Altfälle).
 - **Rate-Limiting** ist nicht instanzenübergreifend.
