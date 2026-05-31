@@ -9,6 +9,8 @@ import {
   deriveWhistleblowerKeyPair,
   encryptForRecipients,
   generateKeyPair,
+  sealOpen,
+  sealTo,
 } from './e2e';
 import { RECIPIENT_RECOVERY, RECIPIENT_WHISTLEBLOWER } from './cases';
 
@@ -79,5 +81,33 @@ describe('Stufe-2 Lebenszyklus (Zero-Knowledge)', () => {
     await expect(
       decryptFromRecipient(report, 'h1', outsider.publicKey, outsider.privateKey),
     ).rejects.toThrow();
+  });
+
+  it('Recovery-Re-Wrap gewährt einem neuen Bearbeiter Zugriff (ohne Server-Klartext)', async () => {
+    const h1 = await generateKeyPair();
+    const recovery = await generateKeyPair();
+    const newHandler = await generateKeyPair(); // nachträglich hinzugefügt, kein Wrap
+
+    const plaintext = 'Nur an h1 + Recovery adressiert.';
+    const ct = await encryptForRecipients(plaintext, {
+      h1: h1.publicKey,
+      [RECIPIENT_RECOVERY]: recovery.publicKey,
+    });
+
+    // Neuer Bearbeiter hat (noch) keinen Wrap.
+    expect(ct.wraps.newH).toBeUndefined();
+
+    // Recovery entpackt den Inhaltsschlüssel und verpackt ihn für den neuen
+    // Bearbeiter neu (rein clientseitig: sealOpen -> sealTo).
+    const recoveryWrap = ct.wraps[RECIPIENT_RECOVERY];
+    if (!recoveryWrap) throw new Error('kein Recovery-Wrap');
+    const contentKey = await sealOpen(recoveryWrap, recovery.publicKey, recovery.privateKey);
+    const rewrapped = await sealTo(contentKey, newHandler.publicKey);
+
+    // Mit dem neuen Wrap kann der neue Bearbeiter den Fall jetzt entschlüsseln.
+    const restored = { ...ct, wraps: { ...ct.wraps, newH: rewrapped } };
+    expect(
+      await decryptFromRecipient(restored, 'newH', newHandler.publicKey, newHandler.privateKey),
+    ).toBe(plaintext);
   });
 });
