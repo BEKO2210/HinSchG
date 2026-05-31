@@ -177,6 +177,28 @@ test('Mandantentrennung: ADMIN sieht keine Fälle einer fremden Meldestelle', as
   await expect(page.getByRole('link', { name: foreignCase!.id.slice(0, 8) })).toHaveCount(0);
 });
 
+test('Mandanten-Melde-Strecke /m/[slug]/melden funktioniert; unbekannter Slug → 404', async ({
+  browser,
+}) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  // Unbekannte Meldestelle -> 404.
+  const missing = await page.goto('/m/gibt-es-nicht-xyz/melden');
+  expect(missing?.status()).toBe(404);
+
+  // Bekannte Meldestelle (Seed-Slug „demo") zeigt den Namen und nimmt Meldungen an.
+  await page.goto('/m/demo/melden');
+  await expect(page.getByText('Meldestelle: Demo-Meldestelle')).toBeVisible();
+  await page.locator('#description').fill('E2E-Test: Hinweis über die Mandanten-URL.');
+  await page.getByRole('button', { name: 'Meldung absenden' }).click();
+  await expect(page.getByText('Ihre Meldung wurde übermittelt')).toBeVisible();
+  const token = (await page.locator('code.select-all').first().innerText()).trim();
+  expect(token).toMatch(TOKEN_RE);
+
+  await context.close();
+});
+
 test('ADMIN setzt ein Bearbeiter-Schlüsselpaar zurück (Status wird „ausstehend")', async ({
   page,
 }) => {

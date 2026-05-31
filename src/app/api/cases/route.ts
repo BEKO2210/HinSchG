@@ -20,7 +20,20 @@ import {
   validateReportInput,
 } from '@/lib/cases';
 import { prisma } from '@/lib/db';
+import { isValidOfficeSlug } from '@/lib/office';
 import { clientKeyFromHeaders, rateLimit } from '@/lib/rate-limit';
+
+// Loest die Ziel-Meldestelle auf: mit gueltigem Slug gezielt (Multi-Tenant),
+// sonst die Standard-Meldestelle. Ungueltiger/unbekannter Slug -> null.
+async function resolveOffice(slug: unknown): Promise<{ id: string } | null> {
+  if (typeof slug === 'string' && slug.length > 0) {
+    if (!isValidOfficeSlug(slug)) {
+      return null;
+    }
+    return prisma.reportingOffice.findUnique({ where: { slug }, select: { id: true } });
+  }
+  return prisma.reportingOffice.findFirst({ orderBy: { createdAt: 'asc' }, select: { id: true } });
+}
 
 // Prisma + node:crypto erfordern die Node.js-Runtime (nicht Edge).
 export const runtime = 'nodejs';
@@ -73,11 +86,10 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
   const { category, description, incidentDate, contact } = validation.value;
 
-  // --- Ziel-Meldestelle ermitteln (MVP: erste/einzige) ----------------------
-  const office = await prisma.reportingOffice.findFirst({
-    orderBy: { createdAt: 'asc' },
-    select: { id: true },
-  });
+  // --- Ziel-Meldestelle ermitteln (Multi-Tenant, Phase 9b) ------------------
+  // Mit officeSlug wird gezielt eine Meldestelle adressiert (/m/[slug]/melden);
+  // ohne Slug die Standard-Meldestelle.
+  const office = await resolveOffice((raw as Record<string, unknown>).officeSlug);
   if (!office) {
     return NextResponse.json({ error: 'Es ist keine Meldestelle konfiguriert.' }, { status: 503 });
   }
@@ -155,14 +167,19 @@ async function handleE2eSubmission(raw: unknown): Promise<NextResponse> {
   }
   const { category, tokenLookup, tokenHash, wbPublicKey, payload, wraps } = validation.value;
 
-  const office = await prisma.reportingOffice.findFirst({
-    orderBy: { createdAt: 'asc' },
-    select: {
-      id: true,
-      recoveryPublicKey: true,
-      handlers: { where: { publicKey: { not: null } }, select: { id: true } },
-    },
-  });
+  // Ziel-Meldestelle (Multi-Tenant): zuerst per Slug aufloesen, dann die fuer die
+  // Empfaengerpruefung noetigen Felder laden.
+  const resolved = await resolveOffice((raw as Record<string, unknown>).officeSlug);
+  const office = resolved
+    ? await prisma.reportingOffice.findUnique({
+        where: { id: resolved.id },
+        select: {
+          id: true,
+          recoveryPublicKey: true,
+          handlers: { where: { publicKey: { not: null } }, select: { id: true } },
+        },
+      })
+    : null;
   if (!office) {
     return NextResponse.json({ error: 'Es ist keine Meldestelle konfiguriert.' }, { status: 503 });
   }

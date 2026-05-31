@@ -118,9 +118,17 @@ Audit-Metadaten; Klartext-Privatkeys in der DB; fehlende Rollendurchsetzung.
   direkter Zugriff auf eine fremde Fall-ID liefert 404 statt Daten. Signierte
   Alt-Sessions ohne `officeId` werden verworfen (Re-Login erzwungen). Belegt durch
   Unit-Tests (`session.test.ts`) und einen Browser-Cross-Tenant-Test
-  (`e2e/flows.spec.ts`). **Offen (Phase 9b):** mandantenspezifisches öffentliches
-  Routing (`/m/[slug]`) — derzeit nutzt die öffentliche Meldestrecke die
-  Standard-Meldestelle.
+  (`e2e/flows.spec.ts`).
+- **Mandantenspezifisches öffentliches Routing (Phase 9b):** Die Melde-Strecke
+  ist je Meldestelle über `/m/[slug]/melden` erreichbar; der Slug adressiert genau
+  eine Meldestelle (`isValidOfficeSlug` validiert strikt, unbekannte/ungültige
+  Slugs → 404). `/api/cases` und `/api/office/recipients` lösen die Ziel-Meldestelle
+  per Slug auf (ohne Slug die Standard-Meldestelle, rückwärtskompatibel). Das
+  **Postfach** bleibt bewusst global (token-basiert): Der `tokenLookup` ist
+  eindeutig und löst direkt auf den richtigen Fall samt Meldestelle auf — ein Slug
+  würde dort keine zusätzliche Sicherheit bringen. **Offen (Phase 9c):**
+  Self-Service-UI für Plattform-Superadmins zum Anlegen/Verwalten von Meldestellen
+  (derzeit per Seed/Migration).
 - **Metadaten** sind nicht Ende-zu-Ende-verschlüsselt.
 - **Anhänge** (CaseAttachment) sind im Datenmodell vorgesehen, aber noch nicht
   implementiert.
