@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { AdminLogoutButton } from '@/components/AdminLogoutButton';
 import { DeadlineBadge } from '@/components/DeadlineBadge';
+import { ProcessingRequestButton } from '@/components/ProcessingRequestButton';
 import { requireAdminSession } from '@/lib/admin-auth';
 import { categoryLabel } from '@/lib/cases';
 import { caseStatusLabel, severityLabel } from '@/lib/case-status';
@@ -40,6 +41,19 @@ export default async function AdminPage() {
     where: { id: session.h },
     select: { email: true, role: true },
   });
+
+  // Phase 11a: Status der "Fallbearbeitung durch Befugte"-Anfrage (nur für ADMIN
+  // relevant; setzt keine Zugriffsrechte).
+  const officeProcessing =
+    session.r === 'ADMIN'
+      ? await prisma.reportingOffice.findUnique({
+          where: { id: session.o },
+          select: { managedProcessing: true, processingRequest: true },
+        })
+      : null;
+  const processingStatus = officeProcessing?.managedProcessing
+    ? ('ACTIVE' as const)
+    : (officeProcessing?.processingRequest ?? 'NONE');
 
   const cases = await prisma.case.findMany({
     // Mandantentrennung: ausschliesslich Faelle der eigenen Meldestelle.
@@ -102,6 +116,7 @@ export default async function AdminPage() {
           </Link>
           {session.r === 'ADMIN' && (
             <>
+              <ProcessingRequestButton status={processingStatus} />
               <Link
                 href="/admin/handlers"
                 className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900"

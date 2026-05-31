@@ -21,6 +21,8 @@ export const AUDIT_ACTIONS = [
   'OFFICE_UPDATED',
   'BILLING_CHECKOUT_STARTED',
   'BILLING_SUBSCRIPTION_UPDATED',
+  'PROCESSING_REQUESTED',
+  'PROCESSING_DECIDED',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

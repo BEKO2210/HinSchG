@@ -205,6 +205,19 @@ Cross-Tenant-Datenzugriff.
   lokale Passwort+TOTP-Pfad bleibt unverändert daneben bestehen. Die erzeugte
   Session ist identisch zum lokalen Login (officeId-gebunden, Phase 9a). Erfolg
   wird als `LOGIN_SUCCESS` mit `metadata.via = "sso"` auditiert.
+- **Meldestelle-as-a-Service (Phase 11a):** Self-Service-Workflow für die
+  Zusatzleistung „Fallbearbeitung durch befugte Personen" (z. B. Partner-
+  Anwält:innen). **Bewusst ohne neuen Zugriffsmechanismus:** Partner-Anwält:innen
+  sind normale `HANDLER` der jeweiligen Meldestelle mit eigenem Schlüsselpaar —
+  Zugriff auf Fall-Inhalte entsteht ausschließlich über die bestehende E2E-/
+  Recovery-Schicht (Phase 9a/Stufe 2), niemals an der Mandantentrennung vorbei.
+  Der neue Status `ReportingOffice.processingRequest`
+  (`NONE`/`REQUESTED`/`ACTIVE`/`DECLINED`) steuert nur den Onboarding-Ablauf: ein
+  Office-`ADMIN` fragt die Leistung für die **eigene** Meldestelle an
+  (`POST /api/admin/processing-request`), der `SUPERADMIN` schaltet sie frei oder
+  lehnt ab (`POST /api/admin/offices/[id]/processing`, SUPERADMIN-only). Der
+  Status vergibt **keine** Rechte und ändert die Krypto-/Zugriffsschicht nicht;
+  Aktionen werden als `PROCESSING_REQUESTED`/`PROCESSING_DECIDED` auditiert (ohne PII).
 - **Metadaten** sind nicht Ende-zu-Ende-verschlüsselt.
 - **Anhänge** (CaseAttachment) sind im Datenmodell vorgesehen, aber noch nicht
   implementiert.

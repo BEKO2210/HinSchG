@@ -30,6 +30,7 @@ export default async function OfficesPage() {
       plan: true,
       planStatus: true,
       managedProcessing: true,
+      processingRequest: true,
       _count: { select: { handlers: true, cases: true } },
     },
   });
@@ -95,6 +96,7 @@ export default async function OfficesPage() {
                   active={office.active}
                   plan={office.plan}
                   managedProcessing={office.managedProcessing}
+                  processingRequest={office.processingRequest}
                   billingEnabled={billingOn}
                   stripeConfigured={stripeOn}
                 />
