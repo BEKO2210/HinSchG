@@ -1,20 +1,29 @@
-// HinSchG — Kurzlebige, an einen Fall gebundene Postfach-Session
+// HinSchG — Signierte, kurzlebige Sessions (Cookies, keine DB-Tabelle)
 //
-// Bewusst KEINE Accounts und KEINE Session-Tabelle: Der Hinweisgeber-Zugang ist
-// rein token-basiert. Nach erfolgreicher Token-Pruefung erhaelt der Client ein
-// signiertes, kurzlebiges httpOnly-Cookie, das ausschliesslich die caseId +
-// Ablaufzeit traegt. Es ist HMAC-signiert (SESSION_SECRET) und damit nicht
-// manipulierbar; bei Ablauf ist es ungueltig (kein dauerhafter Login).
+// Generischer HMAC-signierter Container (SESSION_SECRET) mit Ablaufzeit, darauf
+// aufbauend:
+//   - Postfach-Session (Hinweisgeber, an caseId gebunden)
+//   - Admin-Session (Bearbeiter, mit Rolle)
+//   - Admin-Pre-Auth (Zwischenschritt nach Passwort, vor TOTP-2FA)
+//
+// Es gibt KEINE Accounts/Sessions in der DB; alles steckt im signierten Cookie.
 
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
+// --- Cookie-Namen + Laufzeiten ----------------------------------------------
 export const INBOX_COOKIE = 'hinschg_inbox';
 export const INBOX_SESSION_TTL_SECONDS = 30 * 60; // 30 Minuten
 
-interface SessionPayload {
-  /** caseId */
-  c: string;
-  /** Ablauf (Unix-Sekunden) */
+export const ADMIN_COOKIE = 'hinschg_admin';
+export const ADMIN_SESSION_TTL_SECONDS = 60 * 60; // 60 Minuten
+
+export const ADMIN_PREAUTH_COOKIE = 'hinschg_admin_pre';
+export const ADMIN_PREAUTH_TTL_SECONDS = 5 * 60; // 5 Minuten fuer den 2FA-Schritt
+
+export type HandlerRole = 'ADMIN' | 'HANDLER' | 'AUDITOR';
+
+interface SignedEnvelope<T> {
+  d: T;
   exp: number;
 }
 
@@ -30,29 +39,22 @@ function b64url(input: Buffer | string): string {
   return Buffer.from(input).toString('base64url');
 }
 
-function sign(data: string): string {
+function hmacSign(data: string): string {
   return createHmac('sha256', getSessionSecret()).update(data).digest('base64url');
 }
 
-/**
- * Erstellt einen signierten Session-Wert fuer einen Fall.
- * Rueckgabe enthaelt den Cookie-Wert und die maxAge in Sekunden.
- */
-export function createInboxSession(caseId: string): { value: string; maxAgeSeconds: number } {
-  const payload: SessionPayload = {
-    c: caseId,
-    exp: Math.floor(Date.now() / 1000) + INBOX_SESSION_TTL_SECONDS,
+/** Signiert beliebige Daten mit Ablaufzeit; Rueckgabe ist der Cookie-Wert. */
+function signToken<T>(data: T, ttlSeconds: number): string {
+  const envelope: SignedEnvelope<T> = {
+    d: data,
+    exp: Math.floor(Date.now() / 1000) + ttlSeconds,
   };
-  const encoded = b64url(JSON.stringify(payload));
-  const value = `${encoded}.${sign(encoded)}`;
-  return { value, maxAgeSeconds: INBOX_SESSION_TTL_SECONDS };
+  const encoded = b64url(JSON.stringify(envelope));
+  return `${encoded}.${hmacSign(encoded)}`;
 }
 
-/**
- * Verifiziert einen Session-Cookie-Wert und gibt die caseId zurueck — oder
- * null, wenn die Signatur ungueltig oder die Session abgelaufen ist.
- */
-export function verifyInboxSession(value: string | undefined): string | null {
+/** Verifiziert Signatur + Ablauf und gibt die Nutzdaten zurueck (oder null). */
+function verifyToken<T>(value: string | undefined): T | null {
   if (!value) {
     return null;
   }
@@ -63,30 +65,27 @@ export function verifyInboxSession(value: string | undefined): string | null {
   const encoded = value.slice(0, dot);
   const signature = value.slice(dot + 1);
 
-  const expected = sign(encoded);
+  const expected = hmacSign(encoded);
   const sigBuf = Buffer.from(signature);
   const expBuf = Buffer.from(expected);
   if (sigBuf.length !== expBuf.length || !timingSafeEqual(sigBuf, expBuf)) {
     return null;
   }
 
-  let payload: SessionPayload;
+  let envelope: SignedEnvelope<T>;
   try {
-    payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')) as SessionPayload;
+    envelope = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')) as SignedEnvelope<T>;
   } catch {
     return null;
   }
-  if (typeof payload.c !== 'string' || typeof payload.exp !== 'number') {
+  if (typeof envelope.exp !== 'number' || envelope.exp <= Math.floor(Date.now() / 1000)) {
     return null;
   }
-  if (payload.exp <= Math.floor(Date.now() / 1000)) {
-    return null;
-  }
-  return payload.c;
+  return envelope.d;
 }
 
-/** Cookie-Optionen fuer das Setzen/Loeschen der Session. */
-export function inboxCookieOptions(maxAgeSeconds: number) {
+// --- Cookie-Optionen ---------------------------------------------------------
+export function sessionCookieOptions(maxAgeSeconds: number) {
   return {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -94,4 +93,74 @@ export function inboxCookieOptions(maxAgeSeconds: number) {
     path: '/',
     maxAge: maxAgeSeconds,
   };
+}
+
+/** @deprecated Alias fuer {@link sessionCookieOptions}. */
+export const inboxCookieOptions = sessionCookieOptions;
+
+// --- Postfach-Session (Hinweisgeber) ----------------------------------------
+export function createInboxSession(caseId: string): { value: string; maxAgeSeconds: number } {
+  return {
+    value: signToken({ c: caseId }, INBOX_SESSION_TTL_SECONDS),
+    maxAgeSeconds: INBOX_SESSION_TTL_SECONDS,
+  };
+}
+
+export function verifyInboxSession(value: string | undefined): string | null {
+  const data = verifyToken<{ c: string }>(value);
+  return data && typeof data.c === 'string' ? data.c : null;
+}
+
+// --- Admin-Session (Bearbeiter) ---------------------------------------------
+export interface AdminSession {
+  /** handlerId */
+  h: string;
+  /** Rolle */
+  r: HandlerRole;
+}
+
+export function createAdminSession(
+  handlerId: string,
+  role: HandlerRole,
+): { value: string; maxAgeSeconds: number } {
+  return {
+    value: signToken<AdminSession>({ h: handlerId, r: role }, ADMIN_SESSION_TTL_SECONDS),
+    maxAgeSeconds: ADMIN_SESSION_TTL_SECONDS,
+  };
+}
+
+export function verifyAdminSession(value: string | undefined): AdminSession | null {
+  const data = verifyToken<AdminSession>(value);
+  if (!data || typeof data.h !== 'string') {
+    return null;
+  }
+  if (data.r !== 'ADMIN' && data.r !== 'HANDLER' && data.r !== 'AUDITOR') {
+    return null;
+  }
+  return data;
+}
+
+// --- Admin-Pre-Auth (zwischen Passwort und TOTP) ----------------------------
+export interface AdminPreAuth {
+  /** handlerId */
+  h: string;
+  /** true, wenn TOTP erstmalig eingerichtet wird */
+  setup: boolean;
+  /** verschluesseltes TOTP-Secret (nur waehrend des Setups) */
+  s?: string;
+}
+
+export function createAdminPreAuth(data: AdminPreAuth): { value: string; maxAgeSeconds: number } {
+  return {
+    value: signToken<AdminPreAuth>(data, ADMIN_PREAUTH_TTL_SECONDS),
+    maxAgeSeconds: ADMIN_PREAUTH_TTL_SECONDS,
+  };
+}
+
+export function verifyAdminPreAuth(value: string | undefined): AdminPreAuth | null {
+  const data = verifyToken<AdminPreAuth>(value);
+  if (!data || typeof data.h !== 'string' || typeof data.setup !== 'boolean') {
+    return null;
+  }
+  return data;
 }
