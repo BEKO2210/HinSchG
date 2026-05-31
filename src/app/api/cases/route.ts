@@ -11,7 +11,7 @@
 // Es werden bewusst KEINE IP-Adresse und KEIN User-Agent gespeichert.
 
 import { NextResponse } from 'next/server';
-import { encryptPayload, generateReceiptToken, hashToken } from '@/lib/crypto';
+import { encryptPayload, generateReceiptToken, hashToken, tokenBlindIndex } from '@/lib/crypto';
 import { computeDeadlines, validateReportInput } from '@/lib/cases';
 import { prisma } from '@/lib/db';
 import { clientKeyFromHeaders, rateLimit } from '@/lib/rate-limit';
@@ -70,6 +70,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   // --- Token + Verschluesselung ---------------------------------------------
   const receiptToken = generateReceiptToken();
   const tokenHash = hashToken(receiptToken);
+  const tokenLookup = tokenBlindIndex(receiptToken);
 
   // Sensibler Inhalt wird verschluesselt abgelegt; die Kategorie ist eine
   // nicht-personenbezogene Klassifizierung und bleibt als Spalte durchsuchbar.
@@ -86,6 +87,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         data: {
           officeId: office.id,
           tokenHash,
+          tokenLookup,
           category: category ?? null,
           encryptedPayload,
           deadlineAck,

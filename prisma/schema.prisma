@@ -52,6 +52,7 @@ model Case {
   officeId         String
   office           ReportingOffice @relation(fields: [officeId], references: [id])
   tokenHash        String     @unique // Argon2id-Hash des Receipt-Tokens, NIE Klartext
+  tokenLookup      String     @unique // deterministischer Blind-Index (HMAC) fuer schnellen Login-Lookup
   category         String?
   severity         Severity   @default(UNSET)
   status           CaseStatus @default(NEW)

@@ -13,7 +13,10 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { xchacha20poly1305 } from '@noble/ciphers/chacha';
 import { argon2id } from '@noble/hashes/argon2';
-import { utf8ToBytes } from '@noble/hashes/utils';
+import { hkdf } from '@noble/hashes/hkdf';
+import { hmac } from '@noble/hashes/hmac';
+import { sha256 } from '@noble/hashes/sha256';
+import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils';
 import { base32, base64 } from '@scure/base';
 
 export const CRYPTO_LEVEL = 1 as const;
@@ -172,9 +175,47 @@ function getMasterKey(): Uint8Array {
   return key;
 }
 
-/** Nur fuer Tests: setzt den gecachten Master-Key zurueck. */
+/** Nur fuer Tests: setzt die gecachten Schluessel zurueck. */
 export function resetMasterKeyCache(): void {
   cachedKey = null;
+  cachedBlindIndexKey = null;
+}
+
+// --- Blind Index fuer Receipt-Tokens -----------------------------------------
+// Tokens werden weiterhin ausschliesslich als Argon2id-Hash verifiziert. Fuer
+// das schnelle Auffinden des richtigen Falls beim Login brauchen wir aber einen
+// deterministischen Schluessel — ein O(n)-Durchlauf mit Argon2id pro Fall waere
+// nicht praktikabel. Der Blind-Index ist ein geschluesselter HMAC ueber den
+// (160-Bit-)Token:
+//   - Der HMAC-Schluessel wird via HKDF aus dem MASTER_ENCRYPTION_KEY abgeleitet
+//     (Domain-Trennung), liegt also NICHT in der Datenbank.
+//   - Da der Token >= 160 Bit Entropie hat, bleibt er selbst bei Kenntnis von
+//     DB UND Schluessel praktisch nicht brute-forcebar.
+
+let cachedBlindIndexKey: Uint8Array | null = null;
+
+function getBlindIndexKey(): Uint8Array {
+  if (cachedBlindIndexKey) {
+    return cachedBlindIndexKey;
+  }
+  cachedBlindIndexKey = hkdf(
+    sha256,
+    getMasterKey(),
+    undefined,
+    utf8ToBytes('hinschg/token-blind-index/v1'),
+    32,
+  );
+  return cachedBlindIndexKey;
+}
+
+/**
+ * Deterministischer Blind-Index eines Receipt-Tokens (Hex-HMAC-SHA256).
+ * Wird als indizierte Spalte gespeichert, um beim Login O(1) den passenden
+ * Fall zu finden. Kein Ersatz fuer die Argon2id-Verifikation.
+ */
+export function tokenBlindIndex(token: string): string {
+  const mac = hmac(sha256, getBlindIndexKey(), utf8ToBytes(normalizeReceiptToken(token)));
+  return bytesToHex(mac);
 }
 
 /**
