@@ -20,7 +20,7 @@ export const ADMIN_SESSION_TTL_SECONDS = 60 * 60; // 60 Minuten
 export const ADMIN_PREAUTH_COOKIE = 'hinschg_admin_pre';
 export const ADMIN_PREAUTH_TTL_SECONDS = 5 * 60; // 5 Minuten für den 2FA-Schritt
 
-export type HandlerRole = 'ADMIN' | 'HANDLER' | 'AUDITOR';
+export type HandlerRole = 'SUPERADMIN' | 'ADMIN' | 'HANDLER' | 'AUDITOR';
 
 interface SignedEnvelope<T> {
   d: T;
@@ -140,7 +140,12 @@ export function verifyAdminSession(value: string | undefined): AdminSession | nu
   if (!data || typeof data.h !== 'string') {
     return null;
   }
-  if (data.r !== 'ADMIN' && data.r !== 'HANDLER' && data.r !== 'AUDITOR') {
+  if (
+    data.r !== 'SUPERADMIN' &&
+    data.r !== 'ADMIN' &&
+    data.r !== 'HANDLER' &&
+    data.r !== 'AUDITOR'
+  ) {
     return null;
   }
   // Mandantenbindung ist Pflicht: Sessions ohne officeId (z. B. alte Cookies vor

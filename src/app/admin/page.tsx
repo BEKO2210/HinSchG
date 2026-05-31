@@ -28,6 +28,10 @@ function formatDate(value: Date): string {
 
 export default async function AdminPage() {
   const session = requireAdminSession();
+  // SUPERADMIN verwaltet ausschließlich Meldestellen (kein Fall-Dashboard).
+  if (session.r === 'SUPERADMIN') {
+    redirect('/admin/offices');
+  }
   // AUDITOR hat ausschließlich Lesezugriff auf den Audit-Trail.
   if (session.r === 'AUDITOR') {
     redirect('/admin/audit');

@@ -17,18 +17,25 @@ export async function GET(request: Request): Promise<NextResponse> {
   // bestimmten Meldestelle geliefert; ohne Slug die Standard-Meldestelle.
   const slugParam = new URL(request.url).searchParams.get('slug');
   const select = {
+    active: true,
     recoveryPublicKey: true,
     handlers: {
       where: { publicKey: { not: null } },
       select: { id: true, publicKey: true },
     },
   } as const;
-  const office =
+  const resolved =
     slugParam !== null
       ? isValidOfficeSlug(slugParam)
         ? await prisma.reportingOffice.findUnique({ where: { slug: slugParam }, select })
         : null
-      : await prisma.reportingOffice.findFirst({ orderBy: { createdAt: 'asc' }, select });
+      : await prisma.reportingOffice.findFirst({
+          where: { active: true },
+          orderBy: { createdAt: 'asc' },
+          select,
+        });
+  // Deaktivierte Meldestellen nehmen keine neuen Meldungen an.
+  const office = resolved && resolved.active ? resolved : null;
 
   // Stufe-2-Submit ist standardmaessig aktiv und nur durch explizites
   // E2E_SUBMIT_ENABLED=false abschaltbar. Ist E2E nicht eingerichtet (kein

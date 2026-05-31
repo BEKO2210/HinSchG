@@ -13,3 +13,33 @@
 export function isValidOfficeSlug(value: unknown): value is string {
   return typeof value === 'string' && /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/.test(value);
 }
+
+export const OFFICE_NAME_MIN = 2;
+export const OFFICE_NAME_MAX = 120;
+
+/** Prueft, ob ein Anzeigename fuer eine Meldestelle gueltig ist. */
+export function isValidOfficeName(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    value.trim().length >= OFFICE_NAME_MIN &&
+    value.trim().length <= OFFICE_NAME_MAX
+  );
+}
+
+/**
+ * Leitet einen Slug-Vorschlag aus einem Namen ab (Kleinbuchstaben, Umlaute
+ * transliteriert, nicht-alphanumerisch -> Bindestrich). Das Ergebnis wird
+ * weiterhin mit {@link isValidOfficeSlug} geprueft.
+ */
+export function slugifyOfficeName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 64)
+    .replace(/-+$/g, '');
+}
