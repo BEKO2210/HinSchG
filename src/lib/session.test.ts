@@ -5,9 +5,13 @@ import {
   createAdminPreAuth,
   createAdminSession,
   createInboxSession,
+  createOidcFlowState,
+  oidcFlowCookieOptions,
+  sessionCookieOptions,
   verifyAdminPreAuth,
   verifyAdminSession,
   verifyInboxSession,
+  verifyOidcFlowState,
 } from './session';
 
 beforeAll(() => {
@@ -96,5 +100,86 @@ describe('Admin-Pre-Auth', () => {
   it('akzeptiert keine Admin-Session als Pre-Auth (fehlendes setup-Flag)', () => {
     const { value } = createAdminSession('h_1', 'HANDLER', 'office_1');
     expect(verifyAdminPreAuth(value)).toBeNull();
+  });
+});
+
+describe('OIDC-Flow-State', () => {
+  it('Roundtrip liefert state + PKCE-Verifier zurück', () => {
+    const { value } = createOidcFlowState({ st: 'state-xyz', v: 'verifier-abc' });
+    expect(verifyOidcFlowState(value)).toEqual({ st: 'state-xyz', v: 'verifier-abc' });
+  });
+
+  it('lehnt fehlende/ungültige Werte ab', () => {
+    expect(verifyOidcFlowState(undefined)).toBeNull();
+    // Eine Admin-Session ist kein gültiger Flow-State (fehlende Felder st/v).
+    const { value } = createAdminSession('h_1', 'ADMIN', 'office_1');
+    expect(verifyOidcFlowState(value)).toBeNull();
+  });
+});
+
+describe('verifyAdminSession — Rollenprüfung', () => {
+  function signEnvelope(d: unknown): string {
+    const exp = Math.floor(Date.now() / 1000) + 3600;
+    const encoded = Buffer.from(JSON.stringify({ d, exp })).toString('base64url');
+    const sig = createHmac('sha256', process.env.SESSION_SECRET as string)
+      .update(encoded)
+      .digest('base64url');
+    return `${encoded}.${sig}`;
+  }
+
+  it('verwirft eine korrekt signierte Session mit ungültiger Rolle', () => {
+    expect(verifyAdminSession(signEnvelope({ h: 'h_1', r: 'ROOT', o: 'office_1' }))).toBeNull();
+  });
+
+  it('akzeptiert SUPERADMIN/HANDLER/AUDITOR', () => {
+    for (const r of ['SUPERADMIN', 'HANDLER', 'AUDITOR'] as const) {
+      expect(verifyAdminSession(createAdminSession('h', r, 'o').value)?.r).toBe(r);
+    }
+  });
+});
+
+const TEST_SECRET = 'test-session-secret-mindestens-16-zeichen';
+
+describe('SESSION_SECRET-Pflicht', () => {
+  afterEach(() => {
+    process.env.SESSION_SECRET = TEST_SECRET;
+  });
+
+  it('wirft, wenn das Secret fehlt oder zu kurz ist', () => {
+    delete process.env.SESSION_SECRET;
+    expect(() => createInboxSession('c')).toThrow('SESSION_SECRET');
+    process.env.SESSION_SECRET = 'kurz';
+    expect(() => createInboxSession('c')).toThrow('>= 16');
+  });
+});
+
+describe('verifyToken — kaputter Payload', () => {
+  it('gibt null zurück, wenn der signierte Payload kein gültiges JSON ist', () => {
+    // Gültige Signatur über einen Nicht-JSON-Payload -> JSON.parse-Catch.
+    const encoded = Buffer.from('das-ist-kein-json').toString('base64url');
+    const sig = createHmac('sha256', process.env.SESSION_SECRET as string)
+      .update(encoded)
+      .digest('base64url');
+    expect(verifyInboxSession(`${encoded}.${sig}`)).toBeNull();
+  });
+});
+
+describe('Cookie-Optionen', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('setzt secure nur in Produktion', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    expect(sessionCookieOptions(60).secure).toBe(true);
+    vi.stubEnv('NODE_ENV', 'test');
+    expect(sessionCookieOptions(60).secure).toBe(false);
+  });
+
+  it('oidcFlowCookieOptions nutzt SameSite=lax, behält httpOnly', () => {
+    const opts = oidcFlowCookieOptions(600);
+    expect(opts.sameSite).toBe('lax');
+    expect(opts.httpOnly).toBe(true);
+    expect(opts.maxAge).toBe(600);
   });
 });

@@ -45,3 +45,7 @@ yarn-error.log*
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# Stryker Mutation-Testing-Berichte
+reports/mutation/
+.stryker-tmp/

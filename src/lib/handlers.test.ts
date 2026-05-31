@@ -35,5 +35,19 @@ describe('validateHandlerInput', () => {
 
   it('lehnt nicht-objekte ab', () => {
     expect(validateHandlerInput(null).ok).toBe(false);
+    expect(validateHandlerInput('text').ok).toBe(false);
+  });
+
+  it('behandelt fehlende/nicht-string Felder als ungültig', () => {
+    // email/password/role nicht-string -> jeweils der ternäre false-Zweig.
+    expect(validateHandlerInput({}).ok).toBe(false);
+    expect(validateHandlerInput({ email: 123, password: 456, role: 789 }).ok).toBe(false);
+    expect(validateHandlerInput({ email: 'a@b.de', password: 'x'.repeat(12), role: 12 }).ok).toBe(
+      false,
+    );
+    // gültige E-Mail, aber nicht-string Passwort -> Passwort-Ternär false-Zweig.
+    expect(validateHandlerInput({ email: 'a@b.de', password: 12345678, role: 'ADMIN' }).ok).toBe(
+      false,
+    );
   });
 });

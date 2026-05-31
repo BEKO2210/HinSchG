@@ -23,15 +23,29 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'text-summary', 'html'],
-      include: ['src/**/*.ts', 'src/**/*.tsx'],
+      // Abdeckungs-Gate gilt fuer den rein unit-testbaren Sicherheitskern
+      // (src/lib). Die App-/Routen-/Komponentenschicht (React Server Components,
+      // Browser-DOM, Netzwerk-/DB-IO) wird durch die Playwright-Browser-Tests
+      // (e2e/) abgedeckt, nicht durch Vitest.
+      include: ['src/lib/**/*.ts'],
       exclude: [
         'src/**/*.test.ts',
         'src/**/*.test.tsx',
         'src/**/*.d.ts',
-        // UI-Layout/CSS sind nicht sinnvoll abdeckbar.
-        'src/app/**/layout.tsx',
-        'src/app/**/globals.css',
+        // Browser-only: nutzt document/canvas/createImageBitmap/Blob/URL — nicht
+        // in der Node-Testumgebung ausfuehrbar; durch Playwright (Upload-Flow) gedeckt.
+        'src/lib/attachments-client.ts',
+        // Prisma-Client-Singleton (seiteneffektbehaftete Modul-Initialisierung,
+        // keine Logik); durch Integrationsbetrieb/Playwright gedeckt.
+        'src/lib/db.ts',
       ],
+      // CI-Gate: Build/Test faellt unter 100% Lines + Branches (+ Funcs/Stmts).
+      thresholds: {
+        lines: 100,
+        branches: 100,
+        functions: 100,
+        statements: 100,
+      },
     },
   },
 });

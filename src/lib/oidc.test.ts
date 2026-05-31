@@ -1,9 +1,11 @@
 import { createHash } from 'node:crypto';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   buildAuthorizationUrl,
   generatePkce,
   generateState,
+  exchangeCode,
+  fetchUserinfo,
   getOidcConfig,
   isOidcEnabled,
   type OidcConfig,
@@ -101,5 +103,105 @@ describe('buildAuthorizationUrl', () => {
     expect(url.searchParams.get('state')).toBe('st-1');
     expect(url.searchParams.get('code_challenge')).toBe('chal-1');
     expect(url.searchParams.get('code_challenge_method')).toBe('S256');
+  });
+});
+
+const TEST_CONFIG: OidcConfig = {
+  issuerLabel: 'SSO',
+  authorizationEndpoint: 'https://idp/authorize',
+  tokenEndpoint: 'https://idp/token',
+  userinfoEndpoint: 'https://idp/userinfo',
+  clientId: 'client-1',
+  clientSecret: 'secret-1',
+  redirectUri: 'https://app/cb',
+  scope: 'openid email',
+};
+
+describe('exchangeCode', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('tauscht den Code gegen das Access-Token', async () => {
+    let body = '';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_u: string, init: { body: string }) => {
+        body = init.body;
+        return { ok: true, json: async () => ({ access_token: 'tok_abc' }) };
+      }),
+    );
+    const token = await exchangeCode(TEST_CONFIG, { code: 'c1', codeVerifier: 'v1' });
+    expect(token).toBe('tok_abc');
+    expect(body).toContain('grant_type=authorization_code');
+    expect(body).toContain('code_verifier=v1');
+  });
+
+  it('wirft bei Fehlerantwort oder fehlendem Token', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: false, json: async () => ({}) })),
+    );
+    await expect(exchangeCode(TEST_CONFIG, { code: 'c', codeVerifier: 'v' })).rejects.toThrow();
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: true, json: async () => ({}) })),
+    );
+    await expect(exchangeCode(TEST_CONFIG, { code: 'c', codeVerifier: 'v' })).rejects.toThrow();
+  });
+});
+
+describe('fetchUserinfo', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('liefert normalisierte E-Mail + email_verified (boolean)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({ email: '  Person@Example.ORG ', email_verified: true }),
+      })),
+    );
+    const id = await fetchUserinfo(TEST_CONFIG, 'tok');
+    expect(id).toEqual({ email: 'person@example.org', emailVerified: true });
+  });
+
+  it('akzeptiert email_verified als String "true"', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({ email: 'a@b.de', email_verified: 'true' }),
+      })),
+    );
+    expect((await fetchUserinfo(TEST_CONFIG, 'tok')).emailVerified).toBe(true);
+  });
+
+  it('emailVerified=false bei fehlendem/anderem Wert', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: true, json: async () => ({ email: 'a@b.de' }) })),
+    );
+    expect((await fetchUserinfo(TEST_CONFIG, 'tok')).emailVerified).toBe(false);
+  });
+
+  it('wirft, wenn keine E-Mail geliefert wird', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: true, json: async () => ({ email_verified: true }) })),
+    );
+    await expect(fetchUserinfo(TEST_CONFIG, 'tok')).rejects.toThrow();
+  });
+
+  it('behandelt ungültiges JSON als leeres Profil (wirft mangels E-Mail)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => {
+          throw new Error('kaputt');
+        },
+      })),
+    );
+    await expect(fetchUserinfo(TEST_CONFIG, 'tok')).rejects.toThrow();
   });
 });

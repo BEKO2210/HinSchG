@@ -55,4 +55,8 @@ describe('formatDeadlineRelative', () => {
   it('zeigt zukünftige Fristen', () => {
     expect(formatDeadlineRelative(new Date(NOW + 3 * DAY), NOW)).toBe('in 3 Tag(en)');
   });
+
+  it('zeigt "heute fällig" bei Differenz 0', () => {
+    expect(formatDeadlineRelative(new Date(NOW), NOW)).toBe('heute fällig');
+  });
 });

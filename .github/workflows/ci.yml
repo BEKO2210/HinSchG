@@ -41,8 +41,11 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Unit tests
-        run: npm test
+      # Unit-Tests mit Coverage-Gate: faellt unter 100% Lines/Branches/Funcs/Stmts
+      # (Schwellen in vitest.config.ts; Geltungsbereich: src/lib, der pure
+      # Sicherheitskern). Die App-/Routenschicht deckt der Playwright-Job ab.
+      - name: Unit tests (Coverage-Gate 100%)
+        run: npm run test:coverage
 
       - name: Build
         run: npm run build
@@ -100,4 +103,40 @@ jobs:
         with:
           name: playwright-report
           path: playwright-report/
+          retention-days: 7
+
+  mutation:
+    name: Mutation Testing (Stryker)
+    runs-on: ubuntu-latest
+    env:
+      MASTER_ENCRYPTION_KEY: 'BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc='
+      SESSION_SECRET: 'ci-placeholder-session-secret'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prisma generate
+        run: npm run prisma:generate
+
+      # Mutation-Testing des Sicherheitskerns (src/lib). Faellt unter die in
+      # stryker.config.json gesetzte break-Schwelle.
+      - name: Stryker mutation tests
+        run: npm run test:mutation
+
+      - name: Mutation-Report (immer)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-report
+          path: reports/mutation/
           retention-days: 7

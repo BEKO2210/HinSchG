@@ -89,6 +89,9 @@ function verifyArgon2(secret: string, encoded: string): boolean {
   if (parts.length !== 6 || parts[1] !== 'argon2id') {
     return false;
   }
+  // Die `?? ''`-Fallbacks sind durch die Längenprüfung (parts.length === 6) oben
+  // garantiert nie nötig; sie erfüllen nur noUncheckedIndexedAccess.
+  /* v8 ignore next */
   const params = parts[3] ?? '';
   const match = /^m=(\d+),t=(\d+),p=(\d+)$/.exec(params);
   if (!match) {
@@ -100,6 +103,7 @@ function verifyArgon2(secret: string, encoded: string): boolean {
   let salt: Uint8Array;
   let expected: Uint8Array;
   try {
+    /* v8 ignore next 2 */
     salt = base64.decode(parts[4] ?? '');
     expected = base64.decode(parts[5] ?? '');
   } catch {
@@ -112,6 +116,8 @@ function verifyArgon2(secret: string, encoded: string): boolean {
     dkLen: expected.length,
     version: ARGON2_VERSION,
   });
+  // Defensive Sicherung: argon2id liefert per dkLen stets expected.length Bytes.
+  /* v8 ignore next 3 */
   if (actual.length !== expected.length) {
     return false;
   }
