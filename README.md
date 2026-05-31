@@ -146,6 +146,11 @@ HinSchG ist nach dem Prinzip der **Datenminimierung** gebaut. Geschützt wird pr
 - **Passwörter & Token:** Argon2id (`@noble/hashes`)
 - **Token-Lookup:** geschlüsselter Blind-Index (HMAC-SHA256, Schlüssel via HKDF aus dem Master-Key)
 - **2FA:** TOTP (`otplib`)
+- **Stufe 2 (E2E, optional):** X25519 Sealed Box + Multi-Recipient (libsodium)
+
+Sicherheitsmodell, Schlüsselfluss, internes Review & Audit-Scope:
+**[docs/SECURITY-MODEL.md](./docs/SECURITY-MODEL.md)** · Schwachstelle melden:
+**[SECURITY.md](./SECURITY.md)**.
 
 > ### ⚠️ Ehrlicher Sicherheits-Disclaimer
 >
