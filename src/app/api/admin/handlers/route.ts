@@ -9,6 +9,7 @@ import { adminApiGuard } from '@/lib/admin-auth';
 import { hashPassword } from '@/lib/crypto';
 import { prisma } from '@/lib/db';
 import { validateHandlerInput } from '@/lib/handlers';
+import { canAddHandler } from '@/lib/plans';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -38,6 +39,23 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (existing) {
     return NextResponse.json(
       { error: 'Es existiert bereits ein Bearbeiter mit dieser E-Mail.' },
+      { status: 409 },
+    );
+  }
+
+  // Managed-Layer (Phase 10a): Tarif-Limit fuer Bearbeiter:innen pruefen. Greift
+  // nur bei aktivem Managed-Layer (BILLING_ENABLED=true); sonst unbegrenzt.
+  const office = await prisma.reportingOffice.findUnique({
+    where: { id: session.o },
+    select: { plan: true },
+  });
+  if (!office) {
+    return NextResponse.json({ error: 'Meldestelle nicht gefunden.' }, { status: 404 });
+  }
+  const handlerCount = await prisma.handler.count({ where: { officeId: session.o } });
+  if (!canAddHandler(office.plan, handlerCount)) {
+    return NextResponse.json(
+      { error: 'Das Bearbeiter-Limit Ihres Tarifs ist erreicht.' },
       { status: 409 },
     );
   }

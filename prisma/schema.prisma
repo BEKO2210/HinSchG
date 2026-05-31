@@ -24,6 +24,12 @@ model ReportingOffice {
   // oeffentlich nicht erreichbar (Phase 9c, Superadmin-Verwaltung). Bestehende
   // Faelle/Postfaecher bleiben erhalten.
   active    Boolean  @default(true)
+  // Managed-Layer (Phase 10a): Tarif + Abo-Status je Meldestelle. Die konkreten
+  // Limits stehen in src/lib/plans.ts (Code, nicht DB). Wirksam werden Limits nur,
+  // wenn der Managed-Layer aktiviert ist (BILLING_ENABLED=true); Self-Hoster ohne
+  // Konfiguration sind unbegrenzt. KEINE Zahlungsdaten in diesem Modell.
+  plan       Plan       @default(FREE)
+  planStatus PlanStatus @default(ACTIVE)
   createdAt DateTime @default(now())
 
   // Stufe-2-E2E: Org-Recovery-Keypaar. Der oeffentliche Key ist immer ein
@@ -51,6 +57,19 @@ model Handler {
   createdAt           DateTime    @default(now())
 
   @@index([officeId])
+}
+
+// Managed-Layer (Phase 10a): Tarife. Konkrete Limits in src/lib/plans.ts.
+enum Plan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+// Abo-Status. SUSPENDED ist fuer den spaeteren Billing-Layer (10b) vorgesehen.
+enum PlanStatus {
+  ACTIVE
+  SUSPENDED
 }
 
 enum HandlerRole {
