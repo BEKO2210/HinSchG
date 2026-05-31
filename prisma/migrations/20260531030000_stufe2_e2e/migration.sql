@@ -23,6 +23,7 @@ CREATE TABLE "CaseMessageKey" (
     "messageId" TEXT NOT NULL,
     "recipient" TEXT NOT NULL,
     "wrappedKey" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "CaseMessageKey_pkey" PRIMARY KEY ("id")
 );

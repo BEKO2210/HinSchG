@@ -141,6 +141,7 @@ model CaseMessageKey {
   message    CaseMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
   recipient  String
   wrappedKey String
+  createdAt  DateTime    @default(now())
 
   @@unique([messageId, recipient])
   @@index([messageId])
