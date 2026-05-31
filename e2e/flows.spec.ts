@@ -74,7 +74,11 @@ test('öffentliche Meldung ist nun Ende-zu-Ende-verschlüsselt (Browser-Krypto)'
   await page.getByRole('button', { name: 'Meldung absenden' }).click();
 
   await expect(page.getByText('Ihre Meldung wurde übermittelt')).toBeVisible();
-  await expect(page.getByText('Ende-zu-Ende-verschlüsselt')).toBeVisible();
+  // Spezifisch das E2E-Bestätigungs-Banner prüfen (nicht jeden Treffer von
+  // "Ende-zu-Ende-verschlüsselt" — die Anhang-Sektion enthält den Begriff ebenfalls).
+  await expect(
+    page.getByText('Der Inhalt wurde in Ihrem Browser verschlüsselt'),
+  ).toBeVisible();
   const token = (await page.locator('code.select-all').first().innerText()).trim();
   expect(token).toMatch(TOKEN_RE);
   wbE2eToken = token;
