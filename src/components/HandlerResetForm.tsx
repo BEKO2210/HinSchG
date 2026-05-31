@@ -39,7 +39,7 @@ export function HandlerResetForm({ handlerId, email }: { handlerId: string; emai
 
   return (
     <div className="flex flex-col items-end gap-1">
-      {done && <span className="text-xs text-green-600 dark:text-green-400">zurückgesetzt</span>}
+      {done && <span className="text-xs text-green-700 dark:text-green-400">zurückgesetzt</span>}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -65,7 +65,7 @@ export function HandlerResetForm({ handlerId, email }: { handlerId: string; emai
             placeholder="Neues Passwort"
             className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-900"
           />
-          {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
+          {error && <p className="text-xs text-red-700 dark:text-red-400">{error}</p>}
           <button
             type="submit"
             disabled={busy}

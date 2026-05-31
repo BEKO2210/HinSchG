@@ -14,14 +14,14 @@ export function ProcessingRequestButton({ status }: { status: Status }) {
 
   if (status === 'ACTIVE') {
     return (
-      <span className="text-xs text-green-600 dark:text-green-400">
+      <span className="text-xs text-green-700 dark:text-green-400">
         Fallbearbeitung durch Befugte: aktiv
       </span>
     );
   }
   if (status === 'REQUESTED') {
     return (
-      <span className="text-xs text-amber-600 dark:text-amber-400">
+      <span className="text-xs text-amber-700 dark:text-amber-400">
         Fallbearbeitung durch Befugte: angefragt
       </span>
     );
@@ -56,7 +56,7 @@ export function ProcessingRequestButton({ status }: { status: Status }) {
       >
         Fallbearbeitung anfragen
       </button>
-      {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
+      {error && <span className="text-xs text-red-700 dark:text-red-400">{error}</span>}
     </span>
   );
 }

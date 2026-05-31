@@ -245,7 +245,7 @@ export function E2eCaseView({ data }: { data: E2eCaseData }) {
           placeholder="Passwort"
           className="rounded-md border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
         />
-        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+        {error && <p className="text-sm text-red-700 dark:text-red-400">{error}</p>}
         <button
           type="submit"
           disabled={busy}
@@ -358,7 +358,7 @@ export function E2eCaseView({ data }: { data: E2eCaseData }) {
           maxLength={20000}
           className="rounded-md border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
         />
-        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+        {error && <p className="text-sm text-red-700 dark:text-red-400">{error}</p>}
         <button
           type="submit"
           disabled={busy}

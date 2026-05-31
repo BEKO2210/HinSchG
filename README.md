@@ -13,7 +13,8 @@ Anonyme interne Meldestelle nach **HinSchG** und **EU-Richtlinie 2019/1937** —
 [![Next.js 14](https://img.shields.io/badge/Next.js-14-000000.svg?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-4169E1.svg?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Tests](https://img.shields.io/badge/Tests-203%20Unit%20%2B%2014%20E2E%20grün-3FB950.svg)](#qualität--sicherheit)
+[![Tests](https://img.shields.io/badge/Tests-203%20Unit%20%2B%2020%20E2E%20grün-3FB950.svg)](#qualität--sicherheit)
+[![Barrierefreiheit](https://img.shields.io/badge/WCAG%202.1%20AA-axe%20geprüft-3FB950.svg)](#qualität--sicherheit)
 
 [Funktionen](#funktionen) · [Einblicke](#einblicke) · [Schnellstart](#schnellstart) · [Sicherheit](#sicherheit--datenschutz) · [Compliance](#hinschg-compliance) · [Self-Hosting](./docs/SELFHOSTING.md)
 
@@ -112,6 +113,7 @@ Seit dem **Hinweisgeberschutzgesetz (HinSchG, 2023)** müssen Unternehmen und Be
 | **Datenschutz**         | Keine IP-/User-Agent-Speicherung; Inhalte verschlüsselt at rest (XChaCha20-Poly1305).                         |
 | **Härtung**             | Strikte nonce-basierte CSP, HSTS & Security-Header, globales Rate-Limiting, Brute-Force-Backoff.              |
 | **Aufbewahrung**        | Konfigurierbare Löschfristen für geschlossene Fälle (`CASE_RETENTION_DAYS`).                                  |
+| **Barrierefreiheit**    | **WCAG 2.1 AA** (BITV-2.0-relevant): semantische Struktur, Sprungmarke, beschriftete Formulare, AA-Kontraste — per axe-core in der CI geprüft. |
 | **Self-Hosting**        | Docker Compose + Caddy mit automatischem HTTPS, optionaler **Tor-Onion-Service** — produktiv in unter 30 Minuten. |
 
 ---
@@ -160,6 +162,7 @@ npm run dev                                            # http://localhost:3000
 | `npm run typecheck`      | TypeScript-Prüfung (strict)            |
 | `npm test`               | Unit-Tests (Vitest)                    |
 | `npm run test:e2e`       | Browser-E2E-Tests (Playwright)         |
+| `npm run a11y`           | Barrierefreiheits-Audit (axe / WCAG AA)|
 | `npm run screenshots`    | UI-Screenshots aus Demo-Daten erzeugen |
 | `npm run prisma:migrate` | Migration anwenden                     |
 | `npm run prisma:seed`    | Demo-Meldestelle + Admin anlegen       |
@@ -227,7 +230,8 @@ Architektur, Datenmodell und Bedrohungsmodell im Detail: **[ARCHITECTURE.md](./A
 ## Qualität & Sicherheit
 
 - **203 Unit-Tests** (Krypto, Sessions, Validierung, Rate-Limiting, Fristen, Pläne, OIDC) — mit **100 %-Coverage-Gate** auf dem Sicherheitskern (`src/lib`).
-- **14 Browser-E2E-Tests** (Playwright, echte Browser-Krypto): Meldung, E2E-Flow, Anhänge, Mandantentrennung, Auth-/Audit-Sicherheit.
+- **20 Browser-E2E-Tests** (Playwright, echte Browser-Krypto): Meldung, E2E-Flow, Anhänge, Mandantentrennung, Auth-/Audit-Sicherheit sowie **Barrierefreiheit**.
+- **Barrierefreiheit:** axe-core prüft jede öffentliche Seite in der E2E-Suite gegen **WCAG 2.1 AA** (BITV-2.0-relevant); `npm run a11y` auditiert zusätzlich alle eingeloggten Bearbeiter-Seiten.
 - **Mutation-Testing** (Stryker) auf dem Sicherheitskern als zusätzliches Qualitätsmaß.
 - **CI** (GitHub Actions): Install → Prisma-Validate → Lint → Typecheck → Unit-Tests (Coverage-Gate) → Build → **Playwright-E2E** → Mutation.
 - **TypeScript strict** inkl. `noUncheckedIndexedAccess`.

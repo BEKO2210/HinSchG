@@ -283,7 +283,7 @@ export function ReportForm({ officeSlug }: { officeSlug?: string }) {
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <div className="flex flex-col gap-1.5">
         <label htmlFor="category" className="text-sm font-medium">
-          Kategorie <span className="text-slate-400">(optional)</span>
+          Kategorie <span className="text-slate-500 dark:text-slate-400">(optional)</span>
         </label>
         <select
           id="category"
@@ -302,7 +302,7 @@ export function ReportForm({ officeSlug }: { officeSlug?: string }) {
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="description" className="text-sm font-medium">
-          Beschreibung des Sachverhalts <span className="text-red-600">*</span>
+          Beschreibung des Sachverhalts <span className="text-red-700">*</span>
         </label>
         <textarea
           id="description"
@@ -317,7 +317,7 @@ export function ReportForm({ officeSlug }: { officeSlug?: string }) {
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="incidentDate" className="text-sm font-medium">
-          Zeitpunkt des Vorfalls <span className="text-slate-400">(optional)</span>
+          Zeitpunkt des Vorfalls <span className="text-slate-500 dark:text-slate-400">(optional)</span>
         </label>
         <input
           id="incidentDate"
@@ -329,7 +329,7 @@ export function ReportForm({ officeSlug }: { officeSlug?: string }) {
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="contact" className="text-sm font-medium">
-          Freiwillige Kontaktmöglichkeit <span className="text-slate-400">(optional)</span>
+          Freiwillige Kontaktmöglichkeit <span className="text-slate-500 dark:text-slate-400">(optional)</span>
         </label>
         <input
           id="contact"

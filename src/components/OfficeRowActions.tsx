@@ -107,12 +107,12 @@ export function OfficeRowActions({
     <div className="flex flex-col items-end gap-1">
       {processingRequest === 'REQUESTED' && (
         <div className="flex items-center gap-2 text-xs">
-          <span className="text-amber-600 dark:text-amber-400">Bearbeitung angefragt</span>
+          <span className="text-amber-700 dark:text-amber-400">Bearbeitung angefragt</span>
           <button
             type="button"
             disabled={busy}
             onClick={() => decideProcessing('approve')}
-            className="text-green-600 underline hover:text-green-700 dark:text-green-400"
+            className="text-green-700 underline hover:text-green-800 dark:text-green-400"
           >
             Freischalten
           </button>
@@ -127,7 +127,7 @@ export function OfficeRowActions({
         </div>
       )}
       {managedProcessing && processingRequest === 'ACTIVE' && (
-        <span className="text-xs text-green-600 dark:text-green-400">Bearbeitung aktiv</span>
+        <span className="text-xs text-green-700 dark:text-green-400">Bearbeitung aktiv</span>
       )}
       <div className="flex items-center gap-3 text-xs">
         <button
@@ -143,8 +143,8 @@ export function OfficeRowActions({
           onClick={() => patch({ active: !active })}
           className={
             active
-              ? 'text-amber-600 underline hover:text-amber-700 dark:text-amber-400'
-              : 'text-green-600 underline hover:text-green-700 dark:text-green-400'
+              ? 'text-amber-700 underline hover:text-amber-800 dark:text-amber-400'
+              : 'text-green-700 underline hover:text-green-800 dark:text-green-400'
           }
         >
           {active ? 'Deaktivieren' : 'Aktivieren'}
@@ -184,7 +184,7 @@ export function OfficeRowActions({
                 type="button"
                 disabled={busy}
                 onClick={() => startCheckout(plan === 'FREE' ? 'PRO' : plan)}
-                className="text-green-600 underline hover:text-green-700 dark:text-green-400"
+                className="text-green-700 underline hover:text-green-800 dark:text-green-400"
               >
                 Abo per Stripe
               </button>
@@ -210,7 +210,7 @@ export function OfficeRowActions({
           </button>
         </form>
       )}
-      {error && <span className="text-xs text-red-600 dark:text-red-400">{error}</span>}
+      {error && <span className="text-xs text-red-700 dark:text-red-400">{error}</span>}
     </div>
   );
 }
