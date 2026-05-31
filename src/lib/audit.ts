@@ -14,6 +14,7 @@ export const AUDIT_ACTIONS = [
   'HANDLER_CREATED',
   'CASE_PURGED',
   'E2E_RECOVERY_SET',
+  'HANDLER_KEY_ENROLLED',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

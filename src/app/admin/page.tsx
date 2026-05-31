@@ -83,6 +83,12 @@ export default async function AdminPage() {
         </div>
         <div className="flex items-center gap-3">
           <Link
+            href="/admin/keys"
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900"
+          >
+            Schlüssel
+          </Link>
+          <Link
             href="/admin/audit"
             className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900"
           >
