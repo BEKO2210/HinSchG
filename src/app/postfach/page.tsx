@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
+import { InboxE2eView, type InboxE2eData } from '@/components/InboxE2eView';
 import { InboxLogin } from '@/components/InboxLogin';
 import { InboxReplyForm } from '@/components/InboxReplyForm';
 import { LogoutButton } from '@/components/LogoutButton';
 import { SiteHeader } from '@/components/SiteHeader';
+import { RECIPIENT_RECOVERY, RECIPIENT_WHISTLEBLOWER } from '@/lib/cases';
 import { caseStatusLabel } from '@/lib/case-status';
 import { decryptPayload } from '@/lib/crypto';
 import { prisma } from '@/lib/db';
@@ -97,13 +99,30 @@ export default async function PostfachPage() {
       category: true,
       encryptionVersion: true,
       encryptedPayload: true,
+      wbPublicKey: true,
       acknowledgedAt: true,
       deadlineAck: true,
       deadlineFeedback: true,
       createdAt: true,
+      keys: { select: { recipient: true, wrappedKey: true } },
       messages: {
         orderBy: { createdAt: 'asc' },
-        select: { id: true, direction: true, encryptedBody: true, createdAt: true },
+        select: {
+          id: true,
+          direction: true,
+          encryptedBody: true,
+          createdAt: true,
+          keys: { select: { recipient: true, wrappedKey: true } },
+        },
+      },
+      office: {
+        select: {
+          recoveryPublicKey: true,
+          handlers: {
+            where: { publicKey: { not: null } },
+            select: { id: true, publicKey: true },
+          },
+        },
       },
     },
   });
@@ -123,6 +142,40 @@ export default async function PostfachPage() {
   const report = isE2e
     ? { description: '', incidentDate: null, contact: null }
     : parseReport(found.encryptedPayload);
+
+  // Stufe 2: (öffentliche) Empfängerschlüssel + Ciphertext für die
+  // clientseitige Entschlüsselung/Antwort des Hinweisgebers bereitstellen.
+  let e2eData: InboxE2eData | null = null;
+  if (isE2e && found.wbPublicKey) {
+    const replyRecipients: Record<string, string> = {};
+    if (found.office.recoveryPublicKey)
+      replyRecipients[RECIPIENT_RECOVERY] = found.office.recoveryPublicKey;
+    replyRecipients[RECIPIENT_WHISTLEBLOWER] = found.wbPublicKey;
+    for (const h of found.office.handlers) {
+      if (h.publicKey) replyRecipients[h.id] = h.publicKey;
+    }
+    const reportPayload = JSON.parse(found.encryptedPayload) as { nonce: string; content: string };
+    e2eData = {
+      wbPublicKey: found.wbPublicKey,
+      report: {
+        nonce: reportPayload.nonce,
+        content: reportPayload.content,
+        wrap: found.keys.find((k) => k.recipient === RECIPIENT_WHISTLEBLOWER)?.wrappedKey ?? null,
+      },
+      messages: found.messages.map((m) => {
+        const body = JSON.parse(m.encryptedBody) as { nonce: string; content: string };
+        return {
+          id: m.id,
+          direction: m.direction,
+          nonce: body.nonce,
+          content: body.content,
+          wrap: m.keys.find((k) => k.recipient === RECIPIENT_WHISTLEBLOWER)?.wrappedKey ?? null,
+          createdAt: m.createdAt.toISOString(),
+        };
+      }),
+      replyRecipients,
+    };
+  }
 
   return (
     <Shell>
@@ -161,15 +214,8 @@ export default async function PostfachPage() {
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Verlauf</h2>
 
-        {isE2e ? (
-          <div className="rounded-md border border-brand/40 bg-brand/5 p-4 text-sm">
-            <p className="font-medium">Ende-zu-Ende-verschlüsselt</p>
-            <p className="mt-1 text-slate-600 dark:text-slate-300">
-              Ihre Meldung ist Ende-zu-Ende-verschlüsselt. Das Anzeigen und Beantworten im Browser
-              (mit Ihrem Zugangscode) wird in Kürze ergänzt. Der oben gezeigte Status bleibt
-              aktuell.
-            </p>
-          </div>
+        {isE2e && e2eData ? (
+          <InboxE2eView data={e2eData} />
         ) : (
           <>
             <article className="rounded-md border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">

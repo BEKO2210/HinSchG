@@ -191,6 +191,10 @@ export async function deriveWhistleblowerKeyPair(token: string): Promise<KeyPair
 
 const TOKEN_GROUP_SIZE = 4;
 
+// sessionStorage-Schlüssel, unter dem das Postfach den Receipt-Token im Tab
+// hält (nur Stufe 2, zur clientseitigen Entschlüsselung).
+export const WB_TOKEN_STORAGE_KEY = 'hinschg_wb_token';
+
 /** Erzeugt einen Receipt-Token (160 Bit) im Format XXXX-…-XXXX (Base32). */
 export async function generateReceiptToken(): Promise<string> {
   const s = await getSodium();
