@@ -43,7 +43,7 @@ export default async function AdminPage() {
           </Link>
         )}
         <div className="rounded-md border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-          Das Fall-Dashboard (Liste, Fristen-Ampel, Bearbeitung) folgt in der naechsten Phase.
+          Das Fall-Dashboard (Liste, Fristen-Ampel, Bearbeitung) folgt in der nächsten Phase.
         </div>
       </section>
     </main>

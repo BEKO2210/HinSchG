@@ -1,6 +1,6 @@
 // HinSchG — Serverseitige Durchsetzung der Bearbeiter-Authentifizierung/-Rollen
 //
-// Wird in jeder geschuetzten /admin-Seite und API-Route verwendet. Die Rollen
+// Wird in jeder geschützten /admin-Seite und API-Route verwendet. Die Rollen
 // werden serverseitig erzwungen, nicht nur in der UI.
 
 import { cookies } from 'next/headers';
@@ -13,7 +13,7 @@ export function getAdminSession(): AdminSession | null {
 }
 
 /**
- * Fuer Server-Components: erzwingt eine gueltige Session und optional eine der
+ * Für Server-Components: erzwingt eine gültige Session und optional eine der
  * erlaubten Rollen. Leitet sonst weiter (Login bzw. Dashboard).
  */
 export function requireAdminSession(roles?: readonly HandlerRole[]): AdminSession {

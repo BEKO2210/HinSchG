@@ -23,13 +23,13 @@ describe('rateLimit', () => {
     expect(blocked.retryAfterSec).toBeGreaterThan(0);
   });
 
-  it('zaehlt Schluessel unabhaengig', () => {
+  it('zählt Schlüssel unabhängig', () => {
     expect(rateLimit('a', 1, 60_000).ok).toBe(true);
     expect(rateLimit('a', 1, 60_000).ok).toBe(false);
     expect(rateLimit('b', 1, 60_000).ok).toBe(true);
   });
 
-  it('setzt das Fenster nach Ablauf zurueck', () => {
+  it('setzt das Fenster nach Ablauf zurück', () => {
     expect(rateLimit('c', 1, 1).ok).toBe(true);
     // Fenster von 1 ms ist nach diesem Tick abgelaufen.
     return new Promise<void>((resolve) => {
@@ -47,7 +47,7 @@ describe('clientKeyFromHeaders', () => {
     expect(clientKeyFromHeaders(headers)).toBe('203.0.113.7');
   });
 
-  it('faellt auf x-real-ip zurueck', () => {
+  it('fällt auf x-real-ip zurück', () => {
     expect(clientKeyFromHeaders(new Headers({ 'x-real-ip': '198.51.100.4' }))).toBe('198.51.100.4');
   });
 
@@ -69,11 +69,11 @@ describe('Auth-Backoff', () => {
 
     recordAuthFailure('x');
     const second = authThrottleStatus('x');
-    // Zweiter Fehlversuch -> laengere Sperre als der erste.
+    // Zweiter Fehlversuch -> längere Sperre als der erste.
     expect(second.retryAfterSec).toBeGreaterThanOrEqual(first.retryAfterSec);
   });
 
-  it('setzt die Sperre nach Erfolg zurueck', () => {
+  it('setzt die Sperre nach Erfolg zurück', () => {
     recordAuthFailure('y');
     expect(authThrottleStatus('y').blocked).toBe(true);
     recordAuthSuccess('y');

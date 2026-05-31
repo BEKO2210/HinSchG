@@ -1,11 +1,11 @@
-// HinSchG — Anzeigetexte fuer Fallstatus / Schweregrad / Nachrichtenrichtung.
-// Zentral, damit Postfach und (spaeter) Dashboard dieselben Bezeichnungen nutzen.
+// HinSchG — Anzeigetexte für Fallstatus / Schweregrad / Nachrichtenrichtung.
+// Zentral, damit Postfach und (später) Dashboard dieselben Bezeichnungen nutzen.
 
 export const CASE_STATUS_LABELS: Record<string, string> = {
   NEW: 'Eingegangen',
-  IN_REVIEW: 'In Pruefung',
-  INFO_REQUESTED: 'Rueckfrage offen',
-  ACTION_TAKEN: 'Massnahmen ergriffen',
+  IN_REVIEW: 'In Prüfung',
+  INFO_REQUESTED: 'Rückfrage offen',
+  ACTION_TAKEN: 'Maßnahmen ergriffen',
   CLOSED: 'Abgeschlossen',
   REJECTED: 'Abgelehnt',
 };

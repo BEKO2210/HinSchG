@@ -27,7 +27,7 @@ function safeDecrypt(encoded: string): string {
   try {
     return decryptPayload(encoded);
   } catch {
-    return '[Inhalt konnte nicht entschluesselt werden]';
+    return '[Inhalt konnte nicht entschlüsselt werden]';
   }
 }
 
@@ -77,10 +77,10 @@ export default async function PostfachPage() {
           >
             ← Startseite
           </Link>
-          <h1 className="text-3xl font-semibold tracking-tight">Postfach oeffnen</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">Postfach öffnen</h1>
           <p className="text-slate-600 dark:text-slate-300">
             Geben Sie Ihren Zugangscode ein, um den Stand Ihrer Meldung zu sehen und mit der
-            Meldestelle zu kommunizieren. Es ist kein Konto noetig.
+            Meldestelle zu kommunizieren. Es ist kein Konto nötig.
           </p>
         </header>
         <InboxLogin />
@@ -110,7 +110,7 @@ export default async function PostfachPage() {
     return (
       <Shell>
         <h1 className="text-2xl font-semibold">Fall nicht gefunden</h1>
-        <p className="text-slate-600 dark:text-slate-300">Diese Sitzung ist nicht mehr gueltig.</p>
+        <p className="text-slate-600 dark:text-slate-300">Diese Sitzung ist nicht mehr gültig.</p>
         <LogoutButton />
       </Shell>
     );
@@ -139,15 +139,15 @@ export default async function PostfachPage() {
           <span className="font-medium">{caseStatusLabel(found.status)}</span>
         </div>
         <div className="flex justify-between gap-4">
-          <span className="text-slate-500 dark:text-slate-400">Eingangsbestaetigung</span>
+          <span className="text-slate-500 dark:text-slate-400">Eingangsbestätigung</span>
           <span className="font-medium">
             {found.acknowledgedAt
-              ? `bestaetigt am ${formatDate(found.acknowledgedAt)}`
+              ? `bestätigt am ${formatDate(found.acknowledgedAt)}`
               : `ausstehend (Frist: ${formatDate(found.deadlineAck)})`}
           </span>
         </div>
         <div className="flex justify-between gap-4">
-          <span className="text-slate-500 dark:text-slate-400">Rueckmeldung Folgemassnahmen</span>
+          <span className="text-slate-500 dark:text-slate-400">Rückmeldung Folgemaßnahmen</span>
           <span className="font-medium">bis {formatDate(found.deadlineFeedback)}</span>
         </div>
       </section>

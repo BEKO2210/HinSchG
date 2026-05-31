@@ -1,9 +1,9 @@
 // HinSchG — In-Memory Rate Limiting (Fixed Window)
 //
 // Schutz gegen Missbrauch/Brute-Force (Bedrohung T7) ohne Persistenz: Die
-// Zaehler liegen ausschliesslich fluechtig im Arbeitsspeicher und werden NIE in
-// die Datenbank oder in Logs geschrieben. Der Schluessel (z. B. IP) wird nur
-// transient zum Zaehlen verwendet — im Einklang mit der Datenminimierung.
+// Zähler liegen ausschließlich flüchtig im Arbeitsspeicher und werden NIE in
+// die Datenbank oder in Logs geschrieben. Der Schlüssel (z. B. IP) wird nur
+// transient zum Zählen verwendet — im Einklang mit der Datenminimierung.
 
 interface Bucket {
   count: number;
@@ -15,7 +15,7 @@ const attempts = new Map<string, AuthAttempt>();
 let lastSweep = 0;
 
 function sweep(now: number): void {
-  // Selten aufraeumen, damit die Maps nicht unbegrenzt wachsen.
+  // Selten aufräumen, damit die Maps nicht unbegrenzt wachsen.
   if (now - lastSweep < 60_000) {
     return;
   }
@@ -26,7 +26,7 @@ function sweep(now: number): void {
     }
   }
   for (const [key, attempt] of attempts) {
-    // Eintraege verfallen, sobald die Sperre abgelaufen ist und eine Weile
+    // Einträge verfallen, sobald die Sperre abgelaufen ist und eine Weile
     // (10 min) keine neuen Fehlversuche kamen.
     if (attempt.lockedUntil + 10 * 60_000 <= now) {
       attempts.delete(key);
@@ -38,7 +38,7 @@ export interface RateLimitResult {
   ok: boolean;
   /** Verbleibende Anfragen im aktuellen Fenster. */
   remaining: number;
-  /** Sekunden bis zum Zuruecksetzen des Fensters (fuer Retry-After). */
+  /** Sekunden bis zum Zurücksetzen des Fensters (für Retry-After). */
   retryAfterSec: number;
 }
 
@@ -64,9 +64,9 @@ export function rateLimit(key: string, limit: number, windowMs: number): RateLim
 }
 
 /**
- * Leitet einen transienten Rate-Limit-Schluessel aus den Request-Headern ab.
- * Die IP wird ausschliesslich fluechtig fuer das Limiting genutzt und nirgends
- * gespeichert. Faellt auf einen gemeinsamen Schluessel zurueck, wenn keine IP
+ * Leitet einen transienten Rate-Limit-Schlüssel aus den Request-Headern ab.
+ * Die IP wird ausschließlich flüchtig für das Limiting genutzt und nirgends
+ * gespeichert. Fällt auf einen gemeinsamen Schlüssel zurück, wenn keine IP
  * ermittelbar ist (dann gilt das Limit global).
  */
 export function clientKeyFromHeaders(headers: Headers): string {
@@ -80,9 +80,9 @@ export function clientKeyFromHeaders(headers: Headers): string {
   return headers.get('x-real-ip')?.trim() || 'unknown';
 }
 
-// --- Exponentielles Backoff fuer Auth-Versuche (Token-Login) -----------------
-// Schuetzt das Postfach gegen Brute-Force des Receipt-Tokens (T7). Nach jedem
-// Fehlversuch waechst die Wartezeit exponentiell; ein Erfolg setzt sie zurueck.
+// --- Exponentielles Backoff für Auth-Versuche (Token-Login) -----------------
+// Schützt das Postfach gegen Brute-Force des Receipt-Tokens (T7). Nach jedem
+// Fehlversuch wächst die Wartezeit exponentiell; ein Erfolg setzt sie zurück.
 
 interface AuthAttempt {
   failures: number;
@@ -97,7 +97,7 @@ export interface AuthThrottleStatus {
   retryAfterSec: number;
 }
 
-/** Prueft, ob fuer den Schluessel aktuell eine Backoff-Sperre aktiv ist. */
+/** Prüft, ob für den Schlüssel aktuell eine Backoff-Sperre aktiv ist. */
 export function authThrottleStatus(key: string): AuthThrottleStatus {
   const now = Date.now();
   sweep(now);
@@ -108,7 +108,7 @@ export function authThrottleStatus(key: string): AuthThrottleStatus {
   return { blocked: false, retryAfterSec: 0 };
 }
 
-/** Vermerkt einen Fehlversuch und verlaengert die Sperre exponentiell. */
+/** Vermerkt einen Fehlversuch und verlängert die Sperre exponentiell. */
 export function recordAuthFailure(key: string): void {
   const now = Date.now();
   const attempt = attempts.get(key) ?? { failures: 0, lockedUntil: 0 };
@@ -118,12 +118,12 @@ export function recordAuthFailure(key: string): void {
   attempts.set(key, attempt);
 }
 
-/** Setzt den Backoff nach erfolgreicher Authentifizierung zurueck. */
+/** Setzt den Backoff nach erfolgreicher Authentifizierung zurück. */
 export function recordAuthSuccess(key: string): void {
   attempts.delete(key);
 }
 
-/** Nur fuer Tests: setzt den internen Zustand zurueck. */
+/** Nur für Tests: setzt den internen Zustand zurück. */
 export function resetRateLimitState(): void {
   buckets.clear();
   attempts.clear();

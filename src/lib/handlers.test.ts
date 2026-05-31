@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { HANDLER_PASSWORD_MIN, validateHandlerInput } from './handlers';
 
 describe('validateHandlerInput', () => {
-  it('akzeptiert gueltige Eingaben und normalisiert die E-Mail', () => {
+  it('akzeptiert gültige Eingaben und normalisiert die E-Mail', () => {
     const result = validateHandlerInput({
       email: '  Neuer.Bearbeiter@Example.ORG ',
       password: 'x'.repeat(HANDLER_PASSWORD_MIN),
@@ -15,7 +15,7 @@ describe('validateHandlerInput', () => {
     }
   });
 
-  it('lehnt ungueltige E-Mails ab', () => {
+  it('lehnt ungültige E-Mails ab', () => {
     expect(
       validateHandlerInput({ email: 'keine-mail', password: 'x'.repeat(12), role: 'ADMIN' }).ok,
     ).toBe(false);

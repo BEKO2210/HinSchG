@@ -1,7 +1,7 @@
 // HinSchG — API: Postfach-Login per Receipt-Token (kein Account)
 //
 // Ablauf:
-//   1. Rate Limit + exponentielles Backoff je transientem Schluessel (IP).
+//   1. Rate Limit + exponentielles Backoff je transientem Schlüssel (IP).
 //   2. Blind-Index berechnen -> passenden Fall in O(1) finden.
 //   3. Argon2id-Verifikation des Tokens gegen tokenHash (maszgeblich).
 //   4. Bei Erfolg: kurzlebiges, signiertes httpOnly-Cookie setzen.
@@ -21,13 +21,13 @@ import { INBOX_COOKIE, createInboxSession, inboxCookieOptions } from '@/lib/sess
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Grobe Obergrenze zusaetzlich zum Backoff.
+// Grobe Obergrenze zusätzlich zum Backoff.
 const AUTH_LIMIT = 30;
 const AUTH_WINDOW_MS = 15 * 60 * 1000;
 
 function tooMany(retryAfterSec: number): NextResponse {
   return NextResponse.json(
-    { error: 'Zu viele Versuche. Bitte spaeter erneut versuchen.' },
+    { error: 'Zu viele Versuche. Bitte später erneut versuchen.' },
     { status: 429, headers: { 'Retry-After': String(Math.max(retryAfterSec, 1)) } },
   );
 }
@@ -48,7 +48,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     raw = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Ungueltiges JSON.' }, { status: 400 });
+    return NextResponse.json({ error: 'Ungültiges JSON.' }, { status: 400 });
   }
   const token =
     typeof raw === 'object' &&
@@ -68,7 +68,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   if (!found || !verifyToken(token, found.tokenHash)) {
     recordAuthFailure(key);
-    return NextResponse.json({ error: 'Ungueltiger Zugangscode.' }, { status: 401 });
+    return NextResponse.json({ error: 'Ungültiger Zugangscode.' }, { status: 401 });
   }
 
   recordAuthSuccess(key);

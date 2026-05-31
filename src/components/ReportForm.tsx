@@ -51,7 +51,7 @@ export function ReportForm() {
         error?: string;
       };
       if (!response.ok || !body.receiptToken) {
-        setError(body.error ?? 'Die Meldung konnte nicht uebermittelt werden.');
+        setError(body.error ?? 'Die Meldung konnte nicht übermittelt werden.');
         return;
       }
       setResult({
@@ -80,7 +80,7 @@ export function ReportForm() {
   if (result) {
     return (
       <section className="flex flex-col gap-5" aria-live="polite">
-        <h2 className="text-xl font-semibold">Ihre Meldung wurde uebermittelt</h2>
+        <h2 className="text-xl font-semibold">Ihre Meldung wurde übermittelt</h2>
 
         <div className="rounded-md border border-amber-400 bg-amber-50 p-4 text-amber-900 dark:border-amber-500 dark:bg-amber-950/40 dark:text-amber-100">
           <p className="font-medium">
@@ -107,16 +107,16 @@ export function ReportForm() {
 
         {result.deadlineAck && result.deadlineFeedback && (
           <ul className="list-inside list-disc text-sm text-slate-600 dark:text-slate-300">
-            <li>Eingangsbestaetigung spaetestens bis {formatDate(result.deadlineAck)}.</li>
+            <li>Eingangsbestätigung spätestens bis {formatDate(result.deadlineAck)}.</li>
             <li>
-              Rueckmeldung zu Folgemassnahmen spaetestens bis {formatDate(result.deadlineFeedback)}.
+              Rückmeldung zu Folgemaßnahmen spätestens bis {formatDate(result.deadlineFeedback)}.
             </li>
           </ul>
         )}
 
         <p className="text-sm text-slate-600 dark:text-slate-300">
-          Mit diesem Code koennen Sie Ihr anonymes Postfach unter <code>/postfach</code> oeffnen,
-          den Stand verfolgen und mit der Meldestelle kommunizieren.
+          Mit diesem Code können Sie Ihr anonymes Postfach unter <code>/postfach</code> öffnen, den
+          Stand verfolgen und mit der Meldestelle kommunizieren.
         </p>
       </section>
     );
@@ -134,7 +134,7 @@ export function ReportForm() {
           defaultValue=""
           className="rounded-md border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
         >
-          <option value="">Bitte waehlen …</option>
+          <option value="">Bitte wählen …</option>
           {REPORT_CATEGORIES.map((c) => (
             <option key={c.value} value={c.value}>
               {c.label}
@@ -153,7 +153,7 @@ export function ReportForm() {
           required
           rows={8}
           maxLength={20000}
-          placeholder="Schildern Sie den Vorfall so konkret wie moeglich. Bitte geben Sie nur Informationen an, die Sie teilen moechten."
+          placeholder="Schildern Sie den Vorfall so konkret wie möglich. Bitte geben Sie nur Informationen an, die Sie teilen möchten."
           className="rounded-md border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
         />
       </div>
@@ -172,19 +172,19 @@ export function ReportForm() {
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="contact" className="text-sm font-medium">
-          Freiwillige Kontaktmoeglichkeit <span className="text-slate-400">(optional)</span>
+          Freiwillige Kontaktmöglichkeit <span className="text-slate-400">(optional)</span>
         </label>
         <input
           id="contact"
           name="contact"
           type="text"
           maxLength={1000}
-          placeholder="z. B. eine anonyme E-Mail-Adresse — nur wenn Sie moechten"
+          placeholder="z. B. eine anonyme E-Mail-Adresse — nur wenn Sie möchten"
           className="rounded-md border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
         />
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          Eine Identitaetsangabe ist niemals erforderlich. Der Zugang zu Ihrem Postfach erfolgt
-          ausschliesslich ueber den Zugangscode.
+          Eine Identitätsangabe ist niemals erforderlich. Der Zugang zu Ihrem Postfach erfolgt
+          ausschließlich über den Zugangscode.
         </p>
       </div>
 
@@ -202,7 +202,7 @@ export function ReportForm() {
         disabled={submitting}
         className="rounded-md bg-brand px-4 py-2.5 font-medium text-white hover:bg-brand-accent disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {submitting ? 'Wird uebermittelt …' : 'Meldung absenden'}
+        {submitting ? 'Wird übermittelt …' : 'Meldung absenden'}
       </button>
     </form>
   );

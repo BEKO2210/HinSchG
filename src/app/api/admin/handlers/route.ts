@@ -26,7 +26,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     raw = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Ungueltiges JSON.' }, { status: 400 });
+    return NextResponse.json({ error: 'Ungültiges JSON.' }, { status: 400 });
   }
 
   const validation = validateHandlerInput(raw);

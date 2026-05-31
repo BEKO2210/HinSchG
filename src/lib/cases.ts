@@ -1,4 +1,4 @@
-// HinSchG — Gemeinsame Logik fuer die oeffentliche Meldestrecke
+// HinSchG — Gemeinsame Logik für die öffentliche Meldestrecke
 //
 // Kategorien + Validierung der Formulareingaben. Bewusst frei von Prisma/IO,
 // damit die Validierung pur und unit-testbar bleibt.
@@ -12,21 +12,21 @@ export interface ReportCategory {
 // ein stabiler Code, das Label wird im Formular angezeigt.
 export const REPORT_CATEGORIES: readonly ReportCategory[] = [
   { value: 'corruption', label: 'Korruption & Bestechung' },
-  { value: 'fraud', label: 'Betrug, Untreue & Vermoegensdelikte' },
-  { value: 'discrimination', label: 'Diskriminierung & Belaestigung' },
-  { value: 'data_protection', label: 'Datenschutz- & IT-Sicherheitsverstoesse' },
+  { value: 'fraud', label: 'Betrug, Untreue & Vermögensdelikte' },
+  { value: 'discrimination', label: 'Diskriminierung & Belästigung' },
+  { value: 'data_protection', label: 'Datenschutz- & IT-Sicherheitsverstöße' },
   { value: 'environment', label: 'Umwelt-, Gesundheits- & Verbraucherschutz' },
-  { value: 'compliance', label: 'Verstoesse gegen Gesetze / interne Richtlinien' },
+  { value: 'compliance', label: 'Verstöße gegen Gesetze / interne Richtlinien' },
   { value: 'other', label: 'Sonstiges' },
 ] as const;
 
 const CATEGORY_VALUES = new Set(REPORT_CATEGORIES.map((c) => c.value));
 
-// Laengenbegrenzungen schuetzen vor Missbrauch und uebergrossen Payloads.
+// Längenbegrenzungen schützen vor Missbrauch und übergroßen Payloads.
 export const DESCRIPTION_MAX = 20000;
 export const CONTACT_MAX = 1000;
 
-/** Inhalt einer validierten Meldung (vor Verschluesselung). */
+/** Inhalt einer validierten Meldung (vor Verschlüsselung). */
 export interface ReportInput {
   category?: string;
   description: string;
@@ -46,11 +46,11 @@ function asTrimmedString(input: unknown): string | undefined {
 
 /**
  * Validiert und normalisiert die rohen Formular-/JSON-Daten einer Meldung.
- * Pflichtfeld ist ausschliesslich die Beschreibung — niemals Identitaetsfelder.
+ * Pflichtfeld ist ausschließlich die Beschreibung — niemals Identitätsfelder.
  */
 export function validateReportInput(raw: unknown): ValidationResult {
   if (typeof raw !== 'object' || raw === null) {
-    return { ok: false, error: 'Ungueltige Anfrage.' };
+    return { ok: false, error: 'Ungültige Anfrage.' };
   }
   const body = raw as Record<string, unknown>;
 
@@ -61,7 +61,7 @@ export function validateReportInput(raw: unknown): ValidationResult {
   if (description.length > DESCRIPTION_MAX) {
     return {
       ok: false,
-      error: `Die Beschreibung darf hoechstens ${DESCRIPTION_MAX} Zeichen lang sein.`,
+      error: `Die Beschreibung darf höchstens ${DESCRIPTION_MAX} Zeichen lang sein.`,
     };
   }
 
@@ -82,7 +82,7 @@ export function validateReportInput(raw: unknown): ValidationResult {
     }
     const parsed = new Date(`${rawDate}T00:00:00.000Z`);
     if (Number.isNaN(parsed.getTime())) {
-      return { ok: false, error: 'Der Vorfallszeitpunkt ist kein gueltiges Datum.' };
+      return { ok: false, error: 'Der Vorfallszeitpunkt ist kein gültiges Datum.' };
     }
     // Heute (UTC) als obere Grenze; Zukunft ist nicht plausibel.
     const todayUtc = new Date();
@@ -97,7 +97,7 @@ export function validateReportInput(raw: unknown): ValidationResult {
   if (contact && contact.length > CONTACT_MAX) {
     return {
       ok: false,
-      error: `Die Kontaktangabe darf hoechstens ${CONTACT_MAX} Zeichen lang sein.`,
+      error: `Die Kontaktangabe darf höchstens ${CONTACT_MAX} Zeichen lang sein.`,
     };
   }
 

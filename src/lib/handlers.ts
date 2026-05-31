@@ -5,10 +5,10 @@ import type { HandlerRole } from './session';
 
 export const HANDLER_ROLES: readonly HandlerRole[] = ['ADMIN', 'HANDLER', 'AUDITOR'];
 
-// Mindestlaenge fuer Bearbeiter-Passwoerter (Argon2id schuetzt zusaetzlich).
+// Mindestlänge für Bearbeiter-Passwörter (Argon2id schützt zusätzlich).
 export const HANDLER_PASSWORD_MIN = 12;
 
-// Pragmatische E-Mail-Pruefung (eine Form, kein Klartext-Versand im MVP).
+// Pragmatische E-Mail-Prüfung (eine Form, kein Klartext-Versand im MVP).
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export interface HandlerInput {
@@ -21,13 +21,13 @@ export type HandlerValidation = { ok: true; value: HandlerInput } | { ok: false;
 
 export function validateHandlerInput(raw: unknown): HandlerValidation {
   if (typeof raw !== 'object' || raw === null) {
-    return { ok: false, error: 'Ungueltige Anfrage.' };
+    return { ok: false, error: 'Ungültige Anfrage.' };
   }
   const body = raw as Record<string, unknown>;
 
   const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
   if (!EMAIL_RE.test(email)) {
-    return { ok: false, error: 'Bitte eine gueltige E-Mail-Adresse angeben.' };
+    return { ok: false, error: 'Bitte eine gültige E-Mail-Adresse angeben.' };
   }
 
   const password = typeof body.password === 'string' ? body.password : '';
