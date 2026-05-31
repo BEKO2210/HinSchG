@@ -13,7 +13,7 @@ Anonyme interne Meldestelle nach **HinSchG** und **EU-Richtlinie 2019/1937** —
 [![Next.js 14](https://img.shields.io/badge/Next.js-14-000000.svg?logo=nextdotjs&logoColor=white)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-4169E1.svg?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Tests](https://img.shields.io/badge/Tests-61%20grün-3FB950.svg)](#qualität--sicherheit)
+[![Tests](https://img.shields.io/badge/Tests-203%20Unit%20%2B%2014%20E2E%20grün-3FB950.svg)](#qualität--sicherheit)
 
 [Funktionen](#funktionen) · [Einblicke](#einblicke) · [Schnellstart](#schnellstart) · [Sicherheit](#sicherheit--datenschutz) · [Compliance](#hinschg-compliance) · [Self-Hosting](./docs/SELFHOSTING.md)
 
@@ -33,30 +33,62 @@ Seit dem **Hinweisgeberschutzgesetz (HinSchG, 2023)** müssen Unternehmen und Be
 
 ## Einblicke
 
+> Alle Screenshots zeigen ausschließlich **Demo-/Seed-Daten**; Receipt-Codes sind durch
+> einen offensichtlichen Platzhalter (`DEMO-XXXX-…`) ersetzt. Reproduzierbar erzeugt mit
+> `npm run screenshots` (siehe [`scripts/screenshots.ts`](./scripts/screenshots.ts)).
+
+### Hinweisgeber-Sicht
+
 <table>
   <tr>
-    <td width="50%"><b>Startseite</b> — klare Wege für Hinweisgeber:innen</td>
+    <td width="50%"><b>Startseite</b> — klare Wege, datenminimiert, AGPLv3</td>
     <td width="50%"><b>Meldung einreichen</b> — anonym, ohne Konto</td>
   </tr>
   <tr>
-    <td><img src="./docs/screenshots/landing.png" alt="Startseite" /></td>
-    <td><img src="./docs/screenshots/melden.png" alt="Meldeformular" /></td>
+    <td><img src="./docs/screenshots/landing.png" alt="Startseite mit datenminimierten Hinweisen und Wegen für Hinweisgeber:innen" /></td>
+    <td><img src="./docs/screenshots/melden.png" alt="Anonymes Meldeformular ohne Konto und ohne Identitätspflicht" /></td>
   </tr>
   <tr>
-    <td><b>Fall-Dashboard</b> — mit Fristen-Ampel (7 Tage / 3 Monate)</td>
-    <td><b>Fallbearbeitung</b> — entschlüsselt, Zwei-Wege-Kommunikation</td>
+    <td><b>Bestätigung</b> — einmaliger Zugangscode, E2E-Hinweis</td>
+    <td><b>Anonymes Postfach</b> — im Browser entschlüsselt, Rückkanal</td>
   </tr>
   <tr>
-    <td><img src="./docs/screenshots/dashboard.png" alt="Fall-Dashboard mit Fristen-Ampel" /></td>
-    <td><img src="./docs/screenshots/case.png" alt="Fallbearbeitung" /></td>
+    <td><img src="./docs/screenshots/melden-bestaetigung.png" alt="Bestätigung der Übermittlung mit maskiertem Demo-Zugangscode und Ende-zu-Ende-Hinweis" /></td>
+    <td><img src="./docs/screenshots/postfach-eingeloggt.png" alt="Eingeloggtes anonymes Postfach mit im Browser entschlüsselter Demo-Meldung und verschlüsseltem Rückkanal" /></td>
+  </tr>
+</table>
+
+### Meldestelle / Admin
+
+<table>
+  <tr>
+    <td width="50%"><b>Bearbeiter-Login</b> — Passwort + verpflichtende TOTP-2FA</td>
+    <td width="50%"><b>Fall-Dashboard</b> — Fristen-Ampel (7 Tage / 3 Monate)</td>
   </tr>
   <tr>
-    <td><b>Bearbeiter-Login</b> — Passwort + TOTP-2FA (Pflicht)</td>
+    <td><img src="./docs/screenshots/admin-login-totp-setup.png" alt="Bearbeiter-Login mit verpflichtender Zwei-Faktor-Authentifizierung (TOTP-Setup mit QR-Code)" /></td>
+    <td><img src="./docs/screenshots/admin-dashboard.png" alt="Fall-Dashboard mit Status, Kategorie und farbiger Fristen-Ampel" /></td>
+  </tr>
+  <tr>
+    <td><b>Fall-Detail</b> — E2E-Fall, im Browser entsperrt</td>
     <td><b>Audit-Trail</b> — lückenlos, append-only</td>
   </tr>
   <tr>
-    <td><img src="./docs/screenshots/login.png" alt="Bearbeiter-Login mit 2FA" /></td>
-    <td><img src="./docs/screenshots/audit.png" alt="Audit-Trail" /></td>
+    <td><img src="./docs/screenshots/admin-case-detail.png" alt="Fall-Detailansicht eines Ende-zu-Ende-verschlüsselten Falls mit clientseitiger Entschlüsselung per Passwort" /></td>
+    <td><img src="./docs/screenshots/admin-audit.png" alt="Append-only Audit-Trail ohne personenbezogene Daten, nur Aktionen und IDs" /></td>
+  </tr>
+</table>
+
+### Managed / Multi-Tenant
+
+<table>
+  <tr>
+    <td width="50%"><b>Plattform-Verwaltung</b> — Superadmin verwaltet Meldestellen & Tarife (sieht keine Fallinhalte)</td>
+    <td width="50%"><b>Mandanten-Melde-Strecke</b> — eigene URL je Meldestelle (<code>/m/&lt;slug&gt;/melden</code>)</td>
+  </tr>
+  <tr>
+    <td><img src="./docs/screenshots/superadmin-offices.png" alt="Superadmin-Verwaltung der Meldestellen mit Tarif und nur Metadaten, ohne Zugriff auf Fallinhalte" /></td>
+    <td><img src="./docs/screenshots/melden-tenant.png" alt="Mandantenspezifische Melde-Strecke einer einzelnen Demo-Meldestelle" /></td>
   </tr>
 </table>
 
@@ -66,16 +98,21 @@ Seit dem **Hinweisgeberschutzgesetz (HinSchG, 2023)** müssen Unternehmen und Be
 
 | Bereich               | Funktion                                                                                                      |
 | --------------------- | ------------------------------------------------------------------------------------------------------------- |
-| **Anonyme Meldung**   | Öffentliches Formular ohne Konto; Zugang ausschließlich über einen hochentropischen Receipt-Code (≥ 160 Bit). |
-| **Sicheres Postfach** | Zwei-Wege-Kommunikation zwischen Hinweisgeber:in und Meldestelle — token-basiert, ohne Account.               |
-| **Bearbeiter-Auth**   | Argon2id-Passwörter + **verpflichtende TOTP-2FA**, Rollen ADMIN / HANDLER / AUDITOR (serverseitig erzwungen). |
-| **Fall-Dashboard**    | Status, Kategorie, Schweregrad und **Fristen-Ampel** (grün/gelb/rot); Fälliges/Überfälliges zuerst.           |
-| **HinSchG-Fristen**   | Automatische Berechnung: Eingangsbestätigung in 7 Tagen, Rückmeldung in 3 Monaten.                            |
-| **Audit-Trail**       | Lückenlose Protokollierung, **auf Datenbankebene append-only** (Trigger verhindern UPDATE/DELETE).            |
-| **Datenschutz**       | Keine IP-/User-Agent-Speicherung; Inhalte verschlüsselt at rest (XChaCha20-Poly1305).                         |
-| **Härtung**           | Strikte nonce-basierte CSP, HSTS & Security-Header, globales Rate-Limiting, Brute-Force-Backoff.              |
-| **Aufbewahrung**      | Konfigurierbare Löschfristen für geschlossene Fälle (`CASE_RETENTION_DAYS`).                                  |
-| **Self-Hosting**      | Docker Compose + Caddy mit automatischem HTTPS — produktiv in unter 30 Minuten.                               |
+| **Anonyme Meldung**     | Öffentliches Formular ohne Konto; Zugang ausschließlich über einen hochentropischen Receipt-Code (≥ 160 Bit). |
+| **Sicheres Postfach**   | Zwei-Wege-Kommunikation zwischen Hinweisgeber:in und Meldestelle — token-basiert, ohne Account.               |
+| **Ende-zu-Ende (Stufe 2)** | Optional: Inhalte, Nachrichten & **Anhänge** werden im Browser ver-/entschlüsselt (X25519 + XChaCha20-Poly1305); der Server sieht nur Ciphertext. _Nicht extern auditiert._ |
+| **Verschlüsselte Anhänge** | Hinweisgeber:in und Meldestelle tauschen Dateien Ende-zu-Ende-verschlüsselt aus; Bild-Metadaten (z. B. GPS) werden vor dem Hochladen entfernt. |
+| **Bearbeiter-Auth**     | Argon2id-Passwörter + **verpflichtende TOTP-2FA**, Rollen ADMIN / HANDLER / AUDITOR (serverseitig erzwungen). |
+| **SSO (optional)**      | OpenID-Connect-Login für Bearbeiter:innen, MFA an den IdP delegiert — vollständig abschaltbar (ohne Konfiguration inaktiv). |
+| **Fall-Dashboard**      | Status, Kategorie, Schweregrad und **Fristen-Ampel** (grün/gelb/rot); Fälliges/Überfälliges zuerst.           |
+| **HinSchG-Fristen**     | Automatische Berechnung: Eingangsbestätigung in 7 Tagen, Rückmeldung in 3 Monaten.                            |
+| **Audit-Trail**         | Lückenlose Protokollierung, **auf Datenbankebene append-only** (Trigger verhindern UPDATE/DELETE).            |
+| **Multi-Tenant**        | Mehrere Meldestellen in einer Instanz mit strikter Mandantentrennung; eigene Melde-URL je Meldestelle (`/m/<slug>/melden`). |
+| **Managed / Tarife**    | Plattform-Superadmin (verwaltet Meldestellen, **ohne Zugriff auf Fallinhalte**), Tarife (FREE/PRO/ENTERPRISE) und optionales Stripe-Billing — abschaltbar. |
+| **Datenschutz**         | Keine IP-/User-Agent-Speicherung; Inhalte verschlüsselt at rest (XChaCha20-Poly1305).                         |
+| **Härtung**             | Strikte nonce-basierte CSP, HSTS & Security-Header, globales Rate-Limiting, Brute-Force-Backoff.              |
+| **Aufbewahrung**        | Konfigurierbare Löschfristen für geschlossene Fälle (`CASE_RETENTION_DAYS`).                                  |
+| **Self-Hosting**        | Docker Compose + Caddy mit automatischem HTTPS, optionaler **Tor-Onion-Service** — produktiv in unter 30 Minuten. |
 
 ---
 
@@ -122,6 +159,8 @@ npm run dev                                            # http://localhost:3000
 | `npm run lint`           | ESLint                                 |
 | `npm run typecheck`      | TypeScript-Prüfung (strict)            |
 | `npm test`               | Unit-Tests (Vitest)                    |
+| `npm run test:e2e`       | Browser-E2E-Tests (Playwright)         |
+| `npm run screenshots`    | UI-Screenshots aus Demo-Daten erzeugen |
 | `npm run prisma:migrate` | Migration anwenden                     |
 | `npm run prisma:seed`    | Demo-Meldestelle + Admin anlegen       |
 | `npm run purge:cases`    | Abgelaufene geschlossene Fälle löschen |
@@ -187,8 +226,10 @@ Architektur, Datenmodell und Bedrohungsmodell im Detail: **[ARCHITECTURE.md](./A
 
 ## Qualität & Sicherheit
 
-- **61 Unit-Tests** (Krypto, Sessions, Validierung, Rate-Limiting, Fristen) — grün.
-- **CI** (GitHub Actions): Install → Prisma-Validate → Lint → Typecheck → Tests → Build.
+- **203 Unit-Tests** (Krypto, Sessions, Validierung, Rate-Limiting, Fristen, Pläne, OIDC) — mit **100 %-Coverage-Gate** auf dem Sicherheitskern (`src/lib`).
+- **14 Browser-E2E-Tests** (Playwright, echte Browser-Krypto): Meldung, E2E-Flow, Anhänge, Mandantentrennung, Auth-/Audit-Sicherheit.
+- **Mutation-Testing** (Stryker) auf dem Sicherheitskern als zusätzliches Qualitätsmaß.
+- **CI** (GitHub Actions): Install → Prisma-Validate → Lint → Typecheck → Unit-Tests (Coverage-Gate) → Build → **Playwright-E2E** → Mutation.
 - **TypeScript strict** inkl. `noUncheckedIndexedAccess`.
 - Kein PII / kein Token / kein Meldungsinhalt in Logs oder Audit-Metadaten.
 
@@ -196,12 +237,13 @@ Architektur, Datenmodell und Bedrohungsmodell im Detail: **[ARCHITECTURE.md](./A
 
 ## Roadmap
 
-| Phase       | Inhalt                                                               | Status  |
-| ----------- | -------------------------------------------------------------------- | ------- |
-| MVP (P0–P7) | Meldung, Postfach, 2FA-Auth, Dashboard, Audit, Härtung, Self-Hosting | ✅      |
-| P8          | Ende-zu-Ende-Krypto (Stufe 2) + Tor Onion Service                    | geplant |
-| P9          | Mandantenfähigkeit (Multi-Tenant)                                    | geplant |
-| P10+        | Managed-Hosting, SSO, Meldestelle-as-a-Service                       | geplant |
+| Phase       | Inhalt                                                                          | Status |
+| ----------- | ------------------------------------------------------------------------------- | ------ |
+| MVP (P0–P7) | Meldung, Postfach, 2FA-Auth, Dashboard, Audit, Härtung, Self-Hosting             | ✅     |
+| P8          | Ende-zu-Ende-Krypto (Stufe 2) inkl. verschlüsselter Anhänge + Tor Onion Service  | ✅     |
+| P9          | Mandantenfähigkeit (Multi-Tenant) mit eigener Melde-URL je Meldestelle           | ✅     |
+| P10         | Managed-Hosting (Tarife, optionales Stripe-Billing), SSO/OIDC, Meldestelle-as-a-Service | ✅     |
+| Nächste Schritte | Externes Sicherheits-Audit der Stufe-2-E2E; weitere IdP-Integrationen       | offen  |
 
 ---
 

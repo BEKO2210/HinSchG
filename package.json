@@ -23,7 +23,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "test:mutation": "stryker run"
+    "test:mutation": "stryker run",
+    "screenshots": "tsx scripts/screenshots.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
