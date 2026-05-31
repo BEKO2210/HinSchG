@@ -18,6 +18,29 @@ export const SEVERITY_LABELS: Record<string, string> = {
   CRITICAL: 'Kritisch',
 };
 
+// Geordnete Werte für Auswahlfelder (entsprechen den Prisma-Enums).
+export const CASE_STATUSES = [
+  'NEW',
+  'IN_REVIEW',
+  'INFO_REQUESTED',
+  'ACTION_TAKEN',
+  'CLOSED',
+  'REJECTED',
+] as const;
+
+export const SEVERITIES = ['UNSET', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const;
+
+export type CaseStatusValue = (typeof CASE_STATUSES)[number];
+export type SeverityValue = (typeof SEVERITIES)[number];
+
+export function isCaseStatus(value: unknown): value is CaseStatusValue {
+  return typeof value === 'string' && (CASE_STATUSES as readonly string[]).includes(value);
+}
+
+export function isSeverity(value: unknown): value is SeverityValue {
+  return typeof value === 'string' && (SEVERITIES as readonly string[]).includes(value);
+}
+
 export function caseStatusLabel(status: string): string {
   return CASE_STATUS_LABELS[status] ?? status;
 }

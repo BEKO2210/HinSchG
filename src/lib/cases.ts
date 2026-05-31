@@ -22,6 +22,16 @@ export const REPORT_CATEGORIES: readonly ReportCategory[] = [
 
 const CATEGORY_VALUES = new Set(REPORT_CATEGORIES.map((c) => c.value));
 
+const CATEGORY_LABELS = new Map(REPORT_CATEGORIES.map((c) => [c.value, c.label]));
+
+/** Anzeigename einer Kategorie (oder „Ohne Kategorie", wenn keine gesetzt ist). */
+export function categoryLabel(value: string | null | undefined): string {
+  if (!value) {
+    return 'Ohne Kategorie';
+  }
+  return CATEGORY_LABELS.get(value) ?? value;
+}
+
 // Längenbegrenzungen schützen vor Missbrauch und übergroßen Payloads.
 export const DESCRIPTION_MAX = 20000;
 export const CONTACT_MAX = 1000;

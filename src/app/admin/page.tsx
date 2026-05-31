@@ -1,15 +1,29 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AdminLogoutButton } from '@/components/AdminLogoutButton';
+import { DeadlineBadge } from '@/components/DeadlineBadge';
 import { requireAdminSession } from '@/lib/admin-auth';
+import { categoryLabel } from '@/lib/cases';
+import { caseStatusLabel, severityLabel } from '@/lib/case-status';
 import { prisma } from '@/lib/db';
+import {
+  ACK_WARN_MS,
+  FEEDBACK_WARN_MS,
+  caseUrgency,
+  formatDeadlineRelative,
+  trafficLight,
+} from '@/lib/deadlines';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Meldestelle — HinSchG',
+  title: 'Fall-Dashboard — HinSchG',
 };
+
+function formatDate(value: Date): string {
+  return value.toLocaleDateString('de-DE', { dateStyle: 'medium' });
+}
 
 export default async function AdminPage() {
   const session = requireAdminSession();
@@ -18,34 +32,125 @@ export default async function AdminPage() {
     select: { email: true, role: true },
   });
 
+  const cases = await prisma.case.findMany({
+    select: {
+      id: true,
+      status: true,
+      category: true,
+      severity: true,
+      createdAt: true,
+      deadlineAck: true,
+      deadlineFeedback: true,
+      acknowledgedAt: true,
+      feedbackSentAt: true,
+    },
+  });
+
+  const now = Date.now();
+  const rows = cases
+    .map((c) => ({
+      ...c,
+      urgency: caseUrgency(
+        c.deadlineAck,
+        c.acknowledgedAt !== null,
+        c.deadlineFeedback,
+        c.feedbackSentAt !== null,
+        now,
+      ),
+      ackLevel: trafficLight(c.deadlineAck, c.acknowledgedAt !== null, ACK_WARN_MS, now),
+      feedbackLevel: trafficLight(
+        c.deadlineFeedback,
+        c.feedbackSentAt !== null,
+        FEEDBACK_WARN_MS,
+        now,
+      ),
+    }))
+    .sort((a, b) => a.urgency - b.urgency);
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-6 py-12">
+    <main className="mx-auto flex min-h-screen max-w-5xl flex-col gap-8 px-6 py-12">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-semibold tracking-tight">Meldestelle</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">Fall-Dashboard</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
             Angemeldet als {handler?.email} · Rolle {handler?.role ?? session.r}
           </p>
         </div>
-        <AdminLogoutButton />
+        <div className="flex items-center gap-3">
+          {session.r === 'ADMIN' && (
+            <Link
+              href="/admin/handlers"
+              className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900"
+            >
+              Bearbeiter
+            </Link>
+          )}
+          <AdminLogoutButton />
+        </div>
       </header>
 
-      <section className="grid gap-4 sm:grid-cols-2">
-        {session.r === 'ADMIN' && (
-          <Link
-            href="/admin/handlers"
-            className="rounded-md border border-slate-200 p-4 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900"
-          >
-            <h2 className="font-medium">Bearbeiter verwalten</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Weitere Bearbeiter anlegen und Rollen vergeben.
-            </p>
-          </Link>
-        )}
-        <div className="rounded-md border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-          Das Fall-Dashboard (Liste, Fristen-Ampel, Bearbeitung) folgt in der nächsten Phase.
+      {rows.length === 0 ? (
+        <p className="rounded-md border border-dashed border-slate-300 p-6 text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
+          Es liegen noch keine Meldungen vor.
+        </p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-left text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                <th className="py-2 pr-4 font-medium">Fall</th>
+                <th className="py-2 pr-4 font-medium">Eingang</th>
+                <th className="py-2 pr-4 font-medium">Kategorie</th>
+                <th className="py-2 pr-4 font-medium">Status</th>
+                <th className="py-2 pr-4 font-medium">Schwere</th>
+                <th className="py-2 pr-4 font-medium">Eingangsbestätigung</th>
+                <th className="py-2 pr-4 font-medium">Rückmeldung</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr
+                  key={row.id}
+                  className="border-b border-slate-100 hover:bg-slate-50 dark:border-slate-900 dark:hover:bg-slate-900/50"
+                >
+                  <td className="py-2 pr-4">
+                    <Link
+                      href={`/admin/cases/${row.id}`}
+                      className="font-mono text-brand hover:underline"
+                    >
+                      {row.id.slice(0, 8)}
+                    </Link>
+                  </td>
+                  <td className="whitespace-nowrap py-2 pr-4">{formatDate(row.createdAt)}</td>
+                  <td className="py-2 pr-4">{categoryLabel(row.category)}</td>
+                  <td className="whitespace-nowrap py-2 pr-4">{caseStatusLabel(row.status)}</td>
+                  <td className="whitespace-nowrap py-2 pr-4">{severityLabel(row.severity)}</td>
+                  <td className="py-2 pr-4">
+                    <DeadlineBadge
+                      level={row.ackLevel}
+                      label={
+                        row.acknowledgedAt
+                          ? 'bestätigt'
+                          : formatDeadlineRelative(row.deadlineAck, now)
+                      }
+                    />
+                  </td>
+                  <td className="py-2 pr-4">
+                    <DeadlineBadge
+                      level={row.feedbackLevel}
+                      label={
+                        row.feedbackSentAt
+                          ? 'erfolgt'
+                          : formatDeadlineRelative(row.deadlineFeedback, now)
+                      }
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </section>
+      )}
     </main>
   );
 }
