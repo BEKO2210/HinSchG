@@ -299,8 +299,6 @@ const ALLOWED_MIME_SET = new Set(ALLOWED_ATTACHMENT_MIME_TYPES);
 export const ATTACHMENT_MAX_PLAINTEXT_BYTES = 10 * 1024 * 1024;
 /** Obergrenze fuer das Ciphertext-Feld (Base64 + Overhead): ~15 MiB. */
 export const ATTACHMENT_MAX_CIPHERTEXT_CHARS = 15 * 1024 * 1024;
-/** Maximale Anzahl Anhaenge pro Upload-Vorgang. */
-export const ATTACHMENT_MAX_PER_REQUEST = 5;
 
 /** Ist der MIME-Typ erlaubt (Whitelist)? */
 export function isAllowedAttachmentMime(value: unknown): value is string {

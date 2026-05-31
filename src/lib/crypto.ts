@@ -19,8 +19,6 @@ import { sha256 } from '@noble/hashes/sha256';
 import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils';
 import { base32, base64 } from '@scure/base';
 
-export const CRYPTO_LEVEL = 1 as const;
-
 // --- Argon2id-Parameter ------------------------------------------------------
 // Orientiert an den OWASP-Empfehlungen für Argon2id (m=19 MiB, t=2, p=1).
 const ARGON2_PARAMS = {

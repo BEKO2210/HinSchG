@@ -28,10 +28,9 @@ export default defineConfig({
         'src/**/*.test.ts',
         'src/**/*.test.tsx',
         'src/**/*.d.ts',
-        // UI-Layout/CSS und reine Re-Export-Platzhalter sind nicht sinnvoll abdeckbar.
+        // UI-Layout/CSS sind nicht sinnvoll abdeckbar.
         'src/app/**/layout.tsx',
         'src/app/**/globals.css',
-        'src/lib/auth/index.ts',
       ],
     },
   },
