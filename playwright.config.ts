@@ -26,7 +26,9 @@ export default defineConfig({
   timeout: 60_000,
   expect: { timeout: 15_000 },
   globalSetup: './e2e/global-setup.ts',
-  reporter: [['list']],
+  // list: lesbare Konsolenausgabe; html: diagnostizierbares Fehler-Artefakt für CI
+  // (wird im Workflow bei failure hochgeladen). Kein automatisches Öffnen in CI.
+  reporter: [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
   use: {
     baseURL: BASE_URL,
     locale: 'de-DE',
