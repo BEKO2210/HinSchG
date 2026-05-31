@@ -4,7 +4,9 @@ import { notFound } from 'next/navigation';
 import { AcknowledgeButton } from '@/components/AcknowledgeButton';
 import { CaseStatusControls } from '@/components/CaseStatusControls';
 import { DeadlineBadge } from '@/components/DeadlineBadge';
+import { E2eCaseView, type E2eCaseData } from '@/components/E2eCaseView';
 import { OfficeReplyForm } from '@/components/OfficeReplyForm';
+import { RECIPIENT_RECOVERY, RECIPIENT_WHISTLEBLOWER } from '@/lib/cases';
 import { requireAdminSession } from '@/lib/admin-auth';
 import { categoryLabel } from '@/lib/cases';
 import { caseStatusLabel, severityLabel } from '@/lib/case-status';
@@ -71,14 +73,31 @@ export default async function AdminCasePage({ params }: { params: { id: string }
       category: true,
       encryptionVersion: true,
       encryptedPayload: true,
+      wbPublicKey: true,
       acknowledgedAt: true,
       feedbackSentAt: true,
       deadlineAck: true,
       deadlineFeedback: true,
       createdAt: true,
+      keys: { select: { recipient: true, wrappedKey: true } },
       messages: {
         orderBy: { createdAt: 'asc' },
-        select: { id: true, direction: true, encryptedBody: true, createdAt: true },
+        select: {
+          id: true,
+          direction: true,
+          encryptedBody: true,
+          createdAt: true,
+          keys: { select: { recipient: true, wrappedKey: true } },
+        },
+      },
+      office: {
+        select: {
+          recoveryPublicKey: true,
+          handlers: {
+            where: { publicKey: { not: null } },
+            select: { id: true, publicKey: true },
+          },
+        },
       },
       statusHistory: {
         orderBy: { createdAt: 'asc' },
@@ -100,6 +119,49 @@ export default async function AdminCasePage({ params }: { params: { id: string }
   const report = isE2e
     ? { description: '', incidentDate: null, contact: null }
     : parseReport(found.encryptedPayload);
+
+  // Für Stufe 2 die (öffentlichen) Empfängerschlüssel + den eigenen
+  // (passwortverschlüsselten) privaten Schlüssel für die Browser-Entschlüsselung
+  // zusammenstellen. Der Server entschlüsselt nichts.
+  let e2eData: E2eCaseData | null = null;
+  if (isE2e) {
+    const self = await prisma.handler.findUnique({
+      where: { id: session.h },
+      select: { publicKey: true, encryptedPrivateKey: true },
+    });
+    const replyRecipients: Record<string, string> = {};
+    if (found.office.recoveryPublicKey)
+      replyRecipients[RECIPIENT_RECOVERY] = found.office.recoveryPublicKey;
+    if (found.wbPublicKey) replyRecipients[RECIPIENT_WHISTLEBLOWER] = found.wbPublicKey;
+    for (const h of found.office.handlers) {
+      if (h.publicKey) replyRecipients[h.id] = h.publicKey;
+    }
+    const reportPayload = JSON.parse(found.encryptedPayload) as { nonce: string; content: string };
+    e2eData = {
+      caseId: found.id,
+      recipientId: session.h,
+      publicKey: self?.publicKey ?? null,
+      encryptedPrivateKey: self?.encryptedPrivateKey ?? null,
+      report: {
+        nonce: reportPayload.nonce,
+        content: reportPayload.content,
+        wrap: found.keys.find((k) => k.recipient === session.h)?.wrappedKey ?? null,
+      },
+      messages: found.messages.map((m) => {
+        const body = JSON.parse(m.encryptedBody) as { nonce: string; content: string };
+        return {
+          id: m.id,
+          direction: m.direction,
+          nonce: body.nonce,
+          content: body.content,
+          wrap: m.keys.find((k) => k.recipient === session.h)?.wrappedKey ?? null,
+          createdAt: m.createdAt.toISOString(),
+        };
+      }),
+      replyRecipients,
+    };
+  }
+
   const now = Date.now();
   const ackLevel = trafficLight(found.deadlineAck, found.acknowledgedAt !== null, ACK_WARN_MS, now);
   const feedbackLevel = trafficLight(
@@ -149,15 +211,8 @@ export default async function AdminCasePage({ params }: { params: { id: string }
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Meldung &amp; Verlauf</h2>
 
-        {isE2e ? (
-          <div className="rounded-md border border-brand/40 bg-brand/5 p-4 text-sm">
-            <p className="font-medium">Ende-zu-Ende-verschlüsselt (Stufe 2)</p>
-            <p className="mt-1 text-slate-600 dark:text-slate-300">
-              Dieser Fall ist Ende-zu-Ende-verschlüsselt; der Server kann den Inhalt nicht
-              entschlüsseln. Die Anzeige und Beantwortung im Browser (mit Ihrem entsperrten
-              Schlüssel) wird in Kürze ergänzt.
-            </p>
-          </div>
+        {isE2e && e2eData ? (
+          <E2eCaseView data={e2eData} />
         ) : (
           <>
             <article className="rounded-md border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
