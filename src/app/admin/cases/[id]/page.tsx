@@ -65,8 +65,10 @@ function formatDateTime(value: Date): string {
 export default async function AdminCasePage({ params }: { params: { id: string } }) {
   const session = requireAdminSession(['ADMIN', 'HANDLER']);
 
-  const found = await prisma.case.findUnique({
-    where: { id: params.id },
+  const found = await prisma.case.findFirst({
+    // Mandantentrennung: Fall muss zur Meldestelle der Session gehoeren,
+    // sonst 404 (verhindert Cross-Tenant-Zugriff per Fall-ID).
+    where: { id: params.id, officeId: session.o },
     select: {
       id: true,
       status: true,
@@ -113,7 +115,13 @@ export default async function AdminCasePage({ params }: { params: { id: string }
 
   // Lesezugriff protokollieren (jeder Fallzugriff ist nachvollziehbar).
   await prisma.auditLog.create({
-    data: { actorType: 'HANDLER', actorId: session.h, action: 'CASE_VIEWED', caseId: found.id },
+    data: {
+      actorType: 'HANDLER',
+      actorId: session.h,
+      action: 'CASE_VIEWED',
+      caseId: found.id,
+      officeId: session.o,
+    },
   });
 
   const isE2e = found.encryptionVersion === 2;
