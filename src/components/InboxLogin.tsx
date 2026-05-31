@@ -24,15 +24,26 @@ export function InboxLogin() {
 
     try {
       // Stufe 2 zuerst: Lookup-Hash im Browser berechnen, Token NICHT senden.
-      const { tokenLookupHash } = await import('@/lib/e2e');
+      const { tokenLookupHash, WB_TOKEN_STORAGE_KEY } = await import('@/lib/e2e');
       const tokenLookup = await tokenLookupHash(token);
       let response = await authenticate({ tokenLookup });
+      let isE2e = response.ok;
       // Nicht gefunden? Dann Stufe-1-Fall (Token serverseitig prüfen lassen).
       if (response.status === 401) {
+        isE2e = false;
         response = await authenticate({ token });
       }
 
       if (response.ok) {
+        // Stufe 2: Token im Tab behalten, damit das Postfach im Browser
+        // entschlüsseln kann (httpOnly-Session reicht dafür nicht).
+        if (isE2e) {
+          try {
+            sessionStorage.setItem(WB_TOKEN_STORAGE_KEY, token);
+          } catch {
+            // sessionStorage nicht verfügbar — Postfach fragt den Code erneut ab.
+          }
+        }
         // Session-Cookie ist gesetzt; harte Neuladung, damit die Server-Ansicht
         // die neue Session zuverlässig übernimmt.
         window.location.assign('/postfach');

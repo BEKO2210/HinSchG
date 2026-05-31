@@ -16,6 +16,8 @@ const TOKEN_RE = /^([A-Z2-7]{4}-){7}[A-Z2-7]{4}$/;
 
 // Wird beim TOTP-Setup (Test 2) gelesen und in späteren Tests zum Login genutzt.
 let adminTotpSecret = '';
+// Der in Test 3 erzeugte E2E-Receipt-Token (für die Hinweisgeber-Sicht in Test 5).
+let wbE2eToken = '';
 
 // Tests bauen aufeinander auf (gemeinsame Datenbank), daher seriell.
 test.describe.configure({ mode: 'serial' });
@@ -75,6 +77,7 @@ test('öffentliche Meldung ist nun Ende-zu-Ende-verschlüsselt (Browser-Krypto)'
   await expect(page.getByText('Ende-zu-Ende-verschlüsselt')).toBeVisible();
   const token = (await page.locator('code.select-all').first().innerText()).trim();
   expect(token).toMatch(TOKEN_RE);
+  wbE2eToken = token;
 
   // Postfach-Login mit dem Token: zeigt den E2E-Status (clientseitige Anzeige folgt).
   await page.goto('/postfach');
@@ -117,4 +120,28 @@ test('Meldestelle entschlüsselt den E2E-Fall im Browser und antwortet verschlü
   await page.locator('#body').fill('Antwort der Meldestelle (E2E).');
   await page.getByRole('button', { name: 'Verschlüsselt antworten' }).click();
   await expect(page.getByText('Antwort der Meldestelle (E2E).')).toBeVisible();
+});
+
+test('Hinweisgeber liest die Office-Antwort im Browser und antwortet verschlüsselt', async ({
+  browser,
+}) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  // Postfach mit dem Token öffnen (Stufe-2-Login speichert den Token im Tab).
+  await page.goto('/postfach');
+  await page.locator('#token').fill(wbE2eToken);
+  await page.getByRole('button', { name: 'Postfach öffnen' }).click();
+  await expect(page.getByRole('heading', { name: 'Ihr Postfach' })).toBeVisible();
+
+  // Browser entschlüsselt Meldung + Office-Antwort aus Test 4.
+  await expect(page.getByText('vertraulicher Hinweis')).toBeVisible();
+  await expect(page.getByText('Antwort der Meldestelle (E2E).')).toBeVisible();
+
+  // Verschlüsselt zurückschreiben.
+  await page.locator('#body').fill('Rückmeldung des Hinweisgebers (E2E).');
+  await page.getByRole('button', { name: 'Verschlüsselt senden' }).click();
+  await expect(page.getByText('Rückmeldung des Hinweisgebers (E2E).')).toBeVisible();
+
+  await context.close();
 });
