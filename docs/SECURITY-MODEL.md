@@ -78,16 +78,16 @@ Vierergruppen).
 
 Schweregrad-Einschätzung ist **selbst** vergeben (kein externes Urteil).
 
-| ID  | Schwere         | Befund                                                                                                                                     | Status / Maßnahme                                                                                                               |
-| --- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| F1  | Info            | Stufe-2-Token-Lookup/-Verify sind **ungeschlüsselte** Hashes (kein Argon2id); weicht von der Formulierung „Token nur als Argon2id-Hash" ab | Akzeptiert: Token hat ≥160 Bit Entropie → nicht brute-forcebar; Token wird bei Stufe 2 nie an den Server gesendet; dokumentiert |
-| F2  | Niedrig         | WB-Token liegt während der Postfach-Sitzung im `sessionStorage` (XSS-Exposition)                                                           | Mitigiert durch strikte, nonce-basierte CSP; nur Tab-lokal; Alternativen im Audit prüfen                                        |
-| F3  | Niedrig         | In-Memory Rate-Limiting/Backoff sind **pro Instanz**                                                                                       | Für Multi-Instanz-Betrieb gemeinsamen Speicher (z. B. Redis) ergänzen; dokumentiert                                             |
-| F4  | Info            | CSP enthält `'wasm-unsafe-eval'` (für libsodium) und `style-src 'unsafe-inline'`                                                           | Notwendig bzw. geringes Risiko; Skripte weiterhin nonce-/`strict-dynamic`-geschützt                                             |
-| F5  | Mittel (Design) | Org-Recovery hat noch **keinen Use-Flow** (Fall mit Recovery-Schlüssel wiederherstellen / für neue Bearbeiter neu verpacken)               | Roadmap; nach der Meldung hinzugefügte Bearbeiter können Altfälle bis zum Re-Wrap nicht lesen                                   |
-| F6  | Info            | Metadaten (Kategorie, Status, Fristen, Zeitstempel) sind auch bei Stufe 2 serverseitig sichtbar                                            | Bewusst (Dashboard/Compliance); dokumentiert                                                                                    |
-| F7  | Niedrig         | CSRF: keine separaten CSRF-Token                                                                                                           | Mitigiert durch `SameSite=strict`-Cookies + Same-Origin-`fetch`                                                                 |
-| F8  | Info            | Stufe-1-Betreiber kann Inhalte lesen                                                                                                       | Bewusst; klar kommuniziert (kein Zero-Knowledge)                                                                                |
+| ID  | Schwere         | Befund                                                                                                                                     | Status / Maßnahme                                                                                                                                                                                                                             |
+| --- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F1  | Info            | Stufe-2-Token-Lookup/-Verify sind **ungeschlüsselte** Hashes (kein Argon2id); weicht von der Formulierung „Token nur als Argon2id-Hash" ab | Akzeptiert: Token hat ≥160 Bit Entropie → nicht brute-forcebar; Token wird bei Stufe 2 nie an den Server gesendet; dokumentiert                                                                                                               |
+| F2  | Niedrig         | WB-Token liegt während der Postfach-Sitzung im `sessionStorage` (XSS-Exposition)                                                           | Mitigiert durch strikte, nonce-basierte CSP; nur Tab-lokal; Alternativen im Audit prüfen                                                                                                                                                      |
+| F3  | Niedrig         | In-Memory Rate-Limiting/Backoff sind **pro Instanz**                                                                                       | Für Multi-Instanz-Betrieb gemeinsamen Speicher (z. B. Redis) ergänzen; dokumentiert                                                                                                                                                           |
+| F4  | Info            | CSP enthält `'wasm-unsafe-eval'` (für libsodium) und `style-src 'unsafe-inline'`                                                           | Notwendig bzw. geringes Risiko; Skripte weiterhin nonce-/`strict-dynamic`-geschützt                                                                                                                                                           |
+| F5  | Mittel (Design) | Org-Recovery hatte zunächst keinen Use-Flow                                                                                                | **Adressiert:** Recovery-Re-Wrap (`/api/admin/cases/[id]/recovery`) verpackt den Inhaltsschlüssel per Recovery-Passphrase im Browser neu und gewährt Bearbeiter:innen Zugriff. **Offen:** Schlüssel-Reset (neues Keypaar) bei Passwortverlust |
+| F6  | Info            | Metadaten (Kategorie, Status, Fristen, Zeitstempel) sind auch bei Stufe 2 serverseitig sichtbar                                            | Bewusst (Dashboard/Compliance); dokumentiert                                                                                                                                                                                                  |
+| F7  | Niedrig         | CSRF: keine separaten CSRF-Token                                                                                                           | Mitigiert durch `SameSite=strict`-Cookies + Same-Origin-`fetch`                                                                                                                                                                               |
+| F8  | Info            | Stufe-1-Betreiber kann Inhalte lesen                                                                                                       | Bewusst; klar kommuniziert (kein Zero-Knowledge)                                                                                                                                                                                              |
 
 Im Review **nicht** gefunden: Klartext-Token/PII/Inhalte in Logs oder
 Audit-Metadaten; Klartext-Privatkeys in der DB; fehlende Rollendurchsetzung.
@@ -98,13 +98,13 @@ Audit-Metadaten; Klartext-Privatkeys in der DB; fehlende Rollendurchsetzung.
 
 - **Stufe 2 ist nicht extern auditiert** (standardmäßig aktiv, sobald
   eingerichtet; daher „Ende-zu-Ende", nicht „Zero-Knowledge").
-- **Datenverlust-Risiko ohne Recovery-Use-Flow (F5):** Verlieren alle adressierten
-  Bearbeiter:innen ihren Schlüssel/ihr Passwort, ist ein Fall aktuell nur mit der
-  separat verwahrten Recovery-Passphrase wiederherstellbar — der dafür nötige
-  In-App-Use-Flow fehlt noch. Empfehlung: Recovery-Passphrase sicher verwahren und
-  mehrere Bearbeiter:innen einbinden.
-- **Recovery-Use-Flow** fehlt (nur Einrichtung vorhanden).
-- **Re-Wrap** für neu hinzugefügte Bearbeiter:innen fehlt (Altfälle).
+- **Recovery-Re-Wrap vorhanden (F5):** Mit der Org-Recovery-Passphrase kann ein:e
+  ADMIN den Fallzugriff für Bearbeiter:innen im Browser wiederherstellen (z. B.
+  neu hinzugefügte Bearbeiter:innen). **Offen:** ein **Schlüssel-Reset** für
+  Personen, die ihr Passwort verloren haben (neues Keypaar + anschließendes
+  Re-Wrap). Restrisiko: Gehen **alle** Bearbeiter-Schlüssel **und** die
+  Recovery-Passphrase verloren, ist ein Fall nicht wiederherstellbar — daher
+  Recovery-Passphrase sicher verwahren und mehrere Bearbeiter:innen einbinden.
 - **Rate-Limiting** ist nicht instanzenübergreifend.
 - **Metadaten** sind nicht Ende-zu-Ende-verschlüsselt.
 - **Anhänge** (CaseAttachment) sind im Datenmodell vorgesehen, aber noch nicht

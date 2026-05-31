@@ -6,6 +6,7 @@ import { CaseStatusControls } from '@/components/CaseStatusControls';
 import { DeadlineBadge } from '@/components/DeadlineBadge';
 import { E2eCaseView, type E2eCaseData } from '@/components/E2eCaseView';
 import { OfficeReplyForm } from '@/components/OfficeReplyForm';
+import { RecoveryUse } from '@/components/RecoveryUse';
 import { RECIPIENT_RECOVERY, RECIPIENT_WHISTLEBLOWER } from '@/lib/cases';
 import { requireAdminSession } from '@/lib/admin-auth';
 import { categoryLabel } from '@/lib/cases';
@@ -271,6 +272,8 @@ export default async function AdminCasePage({ params }: { params: { id: string }
           <OfficeReplyForm caseId={found.id} />
         </section>
       )}
+
+      {isE2e && session.r === 'ADMIN' && <RecoveryUse caseId={found.id} />}
     </main>
   );
 }
