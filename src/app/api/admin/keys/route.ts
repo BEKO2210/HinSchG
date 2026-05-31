@@ -69,7 +69,12 @@ export async function POST(request: Request): Promise<NextResponse> {
       data: { publicKey, encryptedPrivateKey },
     });
     await tx.auditLog.create({
-      data: { actorType: 'HANDLER', actorId: handler.id, action: 'HANDLER_KEY_ENROLLED' },
+      data: {
+        actorType: 'HANDLER',
+        actorId: handler.id,
+        action: 'HANDLER_KEY_ENROLLED',
+        officeId: guard.session.o,
+      },
     });
   });
 

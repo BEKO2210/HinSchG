@@ -70,7 +70,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const handler = await prisma.handler.findUnique({
     where: { id: pre.h },
-    select: { id: true, role: true, totpSecret: true },
+    select: { id: true, role: true, totpSecret: true, officeId: true },
   });
   if (!handler) {
     return NextResponse.json({ error: 'Konto nicht gefunden.' }, { status: 401 });
@@ -109,7 +109,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     data: { actorType: 'HANDLER', actorId: handler.id, action: 'LOGIN_SUCCESS' },
   });
 
-  const session = createAdminSession(handler.id, handler.role);
+  const session = createAdminSession(handler.id, handler.role, handler.officeId);
   const response = NextResponse.json({ ok: true });
   response.cookies.set(ADMIN_COOKIE, session.value, sessionCookieOptions(session.maxAgeSeconds));
   // Pre-Auth-Cookie entwerten.

@@ -24,13 +24,14 @@ export default async function AuditPage({
   searchParams: { action?: string; caseId?: string; page?: string };
 }) {
   // Nur ADMIN und AUDITOR; serverseitig erzwungen.
-  requireAdminSession(['ADMIN', 'AUDITOR']);
+  const session = requireAdminSession(['ADMIN', 'AUDITOR']);
 
   const actionFilter = isAuditAction(searchParams.action) ? searchParams.action : undefined;
   const caseIdFilter = searchParams.caseId?.trim() || undefined;
   const page = Math.max(1, Number(searchParams.page ?? '1') || 1);
 
-  const where: Prisma.AuditLogWhereInput = {};
+  // Mandantentrennung: nur Audit-Eintraege der eigenen Meldestelle.
+  const where: Prisma.AuditLogWhereInput = { officeId: session.o };
   if (actionFilter) {
     where.action = actionFilter;
   }

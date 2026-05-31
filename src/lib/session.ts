@@ -117,14 +117,20 @@ export interface AdminSession {
   h: string;
   /** Rolle */
   r: HandlerRole;
+  /** officeId (Mandant) — bindet jede Bearbeiter-Aktion an genau eine Meldestelle */
+  o: string;
 }
 
 export function createAdminSession(
   handlerId: string,
   role: HandlerRole,
+  officeId: string,
 ): { value: string; maxAgeSeconds: number } {
   return {
-    value: signToken<AdminSession>({ h: handlerId, r: role }, ADMIN_SESSION_TTL_SECONDS),
+    value: signToken<AdminSession>(
+      { h: handlerId, r: role, o: officeId },
+      ADMIN_SESSION_TTL_SECONDS,
+    ),
     maxAgeSeconds: ADMIN_SESSION_TTL_SECONDS,
   };
 }
@@ -135,6 +141,11 @@ export function verifyAdminSession(value: string | undefined): AdminSession | nu
     return null;
   }
   if (data.r !== 'ADMIN' && data.r !== 'HANDLER' && data.r !== 'AUDITOR') {
+    return null;
+  }
+  // Mandantenbindung ist Pflicht: Sessions ohne officeId (z. B. alte Cookies vor
+  // der Multi-Tenant-Umstellung) werden verworfen und erzwingen ein Re-Login.
+  if (typeof data.o !== 'string' || data.o.length === 0) {
     return null;
   }
   return data;

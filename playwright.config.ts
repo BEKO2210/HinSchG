@@ -14,6 +14,8 @@ export const TEST_ENV = {
   SESSION_SECRET: 'e2e-test-session-secret-mindestens-16',
   E2E_SUBMIT_ENABLED: 'true',
   SEED_ADMIN_PASSWORD: 'Admin-E2E-Passwort-123',
+  // Zweite Meldestelle inkl. eigenem Fall fuer den Cross-Tenant-Isolationstest.
+  SEED_SECOND_OFFICE: 'true',
   NODE_ENV: 'production',
 };
 

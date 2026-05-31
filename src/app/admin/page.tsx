@@ -38,6 +38,8 @@ export default async function AdminPage() {
   });
 
   const cases = await prisma.case.findMany({
+    // Mandantentrennung: ausschliesslich Faelle der eigenen Meldestelle.
+    where: { officeId: session.o },
     select: {
       id: true,
       status: true,

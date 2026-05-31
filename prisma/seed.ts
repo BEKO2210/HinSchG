@@ -45,6 +45,44 @@ async function main(): Promise<void> {
     },
   });
 
+  // Zweite Meldestelle (nur fuer Mandantentrennungs-Tests). Wird ausschliesslich
+  // mit SEED_SECOND_OFFICE=true angelegt — niemals im normalen/produktiven Seed.
+  // Enthaelt einen eigenen Fall, der nachweislich NICHT fuer Bearbeiter:innen der
+  // ersten Meldestelle sichtbar sein darf (Cross-Tenant-Isolations-Test).
+  if (process.env.SEED_SECOND_OFFICE === 'true') {
+    const office2 = await prisma.reportingOffice.upsert({
+      where: { slug: 'demo2' },
+      update: {},
+      create: { name: 'Zweite Meldestelle', slug: 'demo2' },
+    });
+    const { encryptPayload, generateReceiptToken, hashToken, tokenBlindIndex } = await import(
+      '../src/lib/crypto'
+    );
+    const { computeDeadlines } = await import('../src/lib/cases');
+    const token = generateReceiptToken();
+    const { deadlineAck, deadlineFeedback } = computeDeadlines();
+    await prisma.case.upsert({
+      where: { tokenLookup: tokenBlindIndex(token) },
+      update: {},
+      create: {
+        officeId: office2.id,
+        tokenHash: hashToken(token),
+        tokenLookup: tokenBlindIndex(token),
+        category: 'sonstiges',
+        encryptedPayload: encryptPayload(
+          JSON.stringify({
+            description: 'Fall der zweiten Meldestelle',
+            incidentDate: null,
+            contact: null,
+          }),
+        ),
+        deadlineAck,
+        deadlineFeedback,
+      },
+    });
+    console.log(`Zweite Meldestelle "${office2.name}" inkl. Testfall angelegt.`);
+  }
+
   // Bewusst KEINE Klartext-Ausgabe des Passworts.
   console.log(`Seed abgeschlossen: Meldestelle "${office.name}" + Admin <${adminEmail}>.`);
 }

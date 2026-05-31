@@ -59,7 +59,10 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   // Sicherstellen, dass der Fall existiert (Session könnte auf gelöschten Fall zeigen).
-  const existing = await prisma.case.findUnique({ where: { id: caseId }, select: { id: true } });
+  const existing = await prisma.case.findUnique({
+    where: { id: caseId },
+    select: { id: true, officeId: true },
+  });
   if (!existing) {
     return NextResponse.json({ error: 'Fall nicht gefunden.' }, { status: 404 });
   }
@@ -78,6 +81,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           actorType: 'WHISTLEBLOWER',
           action: 'WB_MESSAGE_ADDED',
           caseId,
+          officeId: existing.officeId,
           // Kein Inhalt im Audit-Log.
         },
       });

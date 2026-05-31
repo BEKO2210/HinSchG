@@ -146,6 +146,37 @@ test('Hinweisgeber liest die Office-Antwort im Browser und antwortet verschlüss
   await context.close();
 });
 
+test('Mandantentrennung: ADMIN sieht keine Fälle einer fremden Meldestelle', async ({ page }) => {
+  // Login als ADMIN der ersten Meldestelle (TOTP aus gespeichertem Secret).
+  await page.goto('/admin/login');
+  await page.locator('#email').fill(ADMIN_EMAIL);
+  await page.locator('#password').fill(ADMIN_PASSWORD);
+  await page.getByRole('button', { name: 'Weiter' }).click();
+  await page.locator('#code').fill(authenticator.generate(adminTotpSecret));
+  await page.getByRole('button', { name: 'Anmelden' }).click();
+  await expect(page.getByRole('heading', { name: 'Fall-Dashboard' })).toBeVisible();
+
+  // Fall der ZWEITEN Meldestelle (vom Seed angelegt) gezielt heraussuchen.
+  const office2 = await prisma.reportingOffice.findUnique({ where: { slug: 'demo2' } });
+  expect(office2).not.toBeNull();
+  const foreignCase = await prisma.case.findFirst({
+    where: { officeId: office2!.id },
+    select: { id: true },
+  });
+  expect(foreignCase).not.toBeNull();
+
+  // Direkter Aufruf des fremden Falls per ID muss ins Leere laufen (404),
+  // obwohl die Session gültig ist — Mandantentrennung greift serverseitig.
+  const response = await page.goto(`/admin/cases/${foreignCase!.id}`);
+  expect(response?.status()).toBe(404);
+  await expect(page.getByText('Fall der zweiten Meldestelle')).toHaveCount(0);
+
+  // Das eigene Dashboard listet den fremden Fall ebenfalls nicht.
+  await page.goto('/admin');
+  await expect(page.getByRole('heading', { name: 'Fall-Dashboard' })).toBeVisible();
+  await expect(page.getByRole('link', { name: foreignCase!.id.slice(0, 8) })).toHaveCount(0);
+});
+
 test('ADMIN setzt ein Bearbeiter-Schlüsselpaar zurück (Status wird „ausstehend")', async ({
   page,
 }) => {
