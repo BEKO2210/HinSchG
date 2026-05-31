@@ -1,5 +1,13 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { INBOX_SESSION_TTL_SECONDS, createInboxSession, verifyInboxSession } from './session';
+import {
+  INBOX_SESSION_TTL_SECONDS,
+  createAdminPreAuth,
+  createAdminSession,
+  createInboxSession,
+  verifyAdminPreAuth,
+  verifyAdminSession,
+  verifyInboxSession,
+} from './session';
 
 beforeAll(() => {
   process.env.SESSION_SECRET = 'test-session-secret-mindestens-16-zeichen';
@@ -44,5 +52,29 @@ describe('createInboxSession / verifyInboxSession', () => {
 
     vi.advanceTimersByTime((INBOX_SESSION_TTL_SECONDS + 1) * 1000);
     expect(verifyInboxSession(value)).toBeNull();
+  });
+});
+
+describe('Admin-Session', () => {
+  it('Roundtrip liefert handlerId und Rolle', () => {
+    const { value } = createAdminSession('h_1', 'ADMIN');
+    expect(verifyAdminSession(value)).toEqual({ h: 'h_1', r: 'ADMIN' });
+  });
+
+  it('akzeptiert keine Inbox-Session als Admin-Session', () => {
+    const { value } = createInboxSession('case_1');
+    expect(verifyAdminSession(value)).toBeNull();
+  });
+});
+
+describe('Admin-Pre-Auth', () => {
+  it('Roundtrip mit Setup-Secret', () => {
+    const { value } = createAdminPreAuth({ h: 'h_1', setup: true, s: 'verschluesselt' });
+    expect(verifyAdminPreAuth(value)).toEqual({ h: 'h_1', setup: true, s: 'verschluesselt' });
+  });
+
+  it('akzeptiert keine Admin-Session als Pre-Auth (fehlendes setup-Flag)', () => {
+    const { value } = createAdminSession('h_1', 'HANDLER');
+    expect(verifyAdminPreAuth(value)).toBeNull();
   });
 });
