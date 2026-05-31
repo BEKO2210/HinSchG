@@ -45,6 +45,26 @@ async function main(): Promise<void> {
     },
   });
 
+  // Optionaler Plattform-Superadmin (Phase 9c). Nur wenn beide Env-Variablen
+  // gesetzt sind. Der Superadmin ist organisatorisch an die Demo-Meldestelle
+  // gebunden (Session-officeId), verwaltet aber instanzweit die Meldestellen.
+  const superEmail = process.env.SEED_SUPERADMIN_EMAIL;
+  const superPassword = process.env.SEED_SUPERADMIN_PASSWORD;
+  if (superEmail && superPassword) {
+    const superHash = hashPassword(superPassword);
+    await prisma.handler.upsert({
+      where: { email: superEmail.toLowerCase() },
+      update: { passwordHash: superHash, role: 'SUPERADMIN', officeId: office.id },
+      create: {
+        email: superEmail.toLowerCase(),
+        passwordHash: superHash,
+        role: 'SUPERADMIN',
+        officeId: office.id,
+      },
+    });
+    console.log(`Superadmin <${superEmail.toLowerCase()}> angelegt/aktualisiert.`);
+  }
+
   // Zweite Meldestelle (nur fuer Mandantentrennungs-Tests). Wird ausschliesslich
   // mit SEED_SECOND_OFFICE=true angelegt — niemals im normalen/produktiven Seed.
   // Enthaelt einen eigenen Fall, der nachweislich NICHT fuer Bearbeiter:innen der

@@ -126,9 +126,19 @@ Audit-Metadaten; Klartext-Privatkeys in der DB; fehlende Rollendurchsetzung.
   per Slug auf (ohne Slug die Standard-Meldestelle, rückwärtskompatibel). Das
   **Postfach** bleibt bewusst global (token-basiert): Der `tokenLookup` ist
   eindeutig und löst direkt auf den richtigen Fall samt Meldestelle auf — ein Slug
-  würde dort keine zusätzliche Sicherheit bringen. **Offen (Phase 9c):**
-  Self-Service-UI für Plattform-Superadmins zum Anlegen/Verwalten von Meldestellen
-  (derzeit per Seed/Migration).
+  würde dort keine zusätzliche Sicherheit bringen.
+- **Plattform-Superadmin (Phase 9c):** Neue Rolle `SUPERADMIN` (im Handler-Modell)
+  verwaltet instanzweit Meldestellen: anlegen (`POST /api/admin/offices`, optional
+  mit Initial-ADMIN), umbenennen/deaktivieren (`PATCH /api/admin/offices/[id]`),
+  UI unter `/admin/offices`. Alle Office-Endpunkte sind **SUPERADMIN-only**
+  (`adminApiGuard(['SUPERADMIN'])`); ADMIN/HANDLER erhalten 403. Bewusste
+  Einschränkung: Der Superadmin sieht **nur Metadaten** (Name, Slug, Aktiv-Status,
+  Zähler) — **keine Fallinhalte**; bei Stufe-2-E2E sind diese ohnehin nicht
+  serverseitig entschlüsselbar. Der Betreiber/Superadmin bleibt damit im
+  Bedrohungsmodell. Deaktivierte Meldestellen (`active=false`) nehmen keine neuen
+  Meldungen an und sind öffentlich nicht erreichbar (`/m/[slug]/melden` → 404);
+  bestehende Fälle/Postfächer bleiben erhalten. Aktionen werden als
+  `OFFICE_CREATED`/`OFFICE_UPDATED` auditiert (ohne PII).
 - **Metadaten** sind nicht Ende-zu-Ende-verschlüsselt.
 - **Anhänge** (CaseAttachment) sind im Datenmodell vorgesehen, aber noch nicht
   implementiert.

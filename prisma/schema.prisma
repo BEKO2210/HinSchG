@@ -20,6 +20,10 @@ model ReportingOffice {
   id        String   @id @default(cuid())
   name      String
   slug      String   @unique
+  // Deaktivierte Meldestellen nehmen keine neuen Meldungen mehr an und sind
+  // oeffentlich nicht erreichbar (Phase 9c, Superadmin-Verwaltung). Bestehende
+  // Faelle/Postfaecher bleiben erhalten.
+  active    Boolean  @default(true)
   createdAt DateTime @default(now())
 
   // Stufe-2-E2E: Org-Recovery-Keypaar. Der oeffentliche Key ist immer ein
@@ -50,7 +54,8 @@ model Handler {
 }
 
 enum HandlerRole {
-  ADMIN // Verwaltung, kann Bearbeiter anlegen
+  SUPERADMIN // Plattform-Verwaltung: legt Meldestellen an/deaktiviert sie; KEIN Zugriff auf Fall-Inhalte
+  ADMIN // Verwaltung einer Meldestelle, kann Bearbeiter anlegen
   HANDLER // Fallbearbeitung
   AUDITOR // nur Lesezugriff auf Audit-Log
 }

@@ -199,6 +199,32 @@ test('Mandanten-Melde-Strecke /m/[slug]/melden funktioniert; unbekannter Slug �
   await context.close();
 });
 
+test('Office-Verwaltung ist SUPERADMIN-only: ADMIN erhält 403', async ({ page }) => {
+  // Als ADMIN der ersten Meldestelle anmelden (TOTP aus gespeichertem Secret).
+  await page.goto('/admin/login');
+  await page.locator('#email').fill(ADMIN_EMAIL);
+  await page.locator('#password').fill(ADMIN_PASSWORD);
+  await page.getByRole('button', { name: 'Weiter' }).click();
+  await page.locator('#code').fill(authenticator.generate(adminTotpSecret));
+  await page.getByRole('button', { name: 'Anmelden' }).click();
+  await expect(page.getByRole('heading', { name: 'Fall-Dashboard' })).toBeVisible();
+
+  // Office-Anlage ist nur für SUPERADMIN erlaubt -> 403 für ADMIN.
+  const status = await page.evaluate(async () => {
+    const res = await fetch('/api/admin/offices', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Unerlaubt', slug: 'unerlaubt' }),
+    });
+    return res.status;
+  });
+  expect(status).toBe(403);
+
+  // Die Superadmin-Seite ist für ADMIN nicht zugänglich (Redirect, kein 200-Inhalt).
+  await page.goto('/admin/offices');
+  await expect(page.getByRole('heading', { name: 'Meldestellen' })).toHaveCount(0);
+});
+
 test('ADMIN setzt ein Bearbeiter-Schlüsselpaar zurück (Status wird „ausstehend")', async ({
   page,
 }) => {

@@ -24,15 +24,26 @@ import { isValidOfficeSlug } from '@/lib/office';
 import { clientKeyFromHeaders, rateLimit } from '@/lib/rate-limit';
 
 // Loest die Ziel-Meldestelle auf: mit gueltigem Slug gezielt (Multi-Tenant),
-// sonst die Standard-Meldestelle. Ungueltiger/unbekannter Slug -> null.
+// sonst die Standard-Meldestelle. Deaktivierte Meldestellen (active=false)
+// nehmen keine neuen Meldungen an -> null. Ungueltiger/unbekannter Slug -> null.
 async function resolveOffice(slug: unknown): Promise<{ id: string } | null> {
-  if (typeof slug === 'string' && slug.length > 0) {
-    if (!isValidOfficeSlug(slug)) {
-      return null;
-    }
-    return prisma.reportingOffice.findUnique({ where: { slug }, select: { id: true } });
+  const office =
+    typeof slug === 'string' && slug.length > 0
+      ? isValidOfficeSlug(slug)
+        ? await prisma.reportingOffice.findUnique({
+            where: { slug },
+            select: { id: true, active: true },
+          })
+        : null
+      : await prisma.reportingOffice.findFirst({
+          where: { active: true },
+          orderBy: { createdAt: 'asc' },
+          select: { id: true, active: true },
+        });
+  if (!office || !office.active) {
+    return null;
   }
-  return prisma.reportingOffice.findFirst({ orderBy: { createdAt: 'asc' }, select: { id: true } });
+  return { id: office.id };
 }
 
 // Prisma + node:crypto erfordern die Node.js-Runtime (nicht Edge).

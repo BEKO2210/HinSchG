@@ -22,9 +22,10 @@ export default async function TenantMeldenPage({ params }: { params: { slug: str
   }
   const office = await prisma.reportingOffice.findUnique({
     where: { slug: params.slug },
-    select: { name: true, slug: true },
+    select: { name: true, slug: true, active: true },
   });
-  if (!office) {
+  // Unbekannte oder deaktivierte Meldestellen sind öffentlich nicht erreichbar.
+  if (!office || !office.active) {
     notFound();
   }
 
