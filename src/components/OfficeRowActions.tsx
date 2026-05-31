@@ -9,18 +9,45 @@ export function OfficeRowActions({
   name,
   active,
   plan,
+  managedProcessing,
   billingEnabled,
+  stripeConfigured,
 }: {
   officeId: string;
   name: string;
   active: boolean;
   plan: Plan;
+  managedProcessing: boolean;
   billingEnabled: boolean;
+  stripeConfigured: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [renaming, setRenaming] = useState(false);
+
+  // Startet Stripe-Checkout fuer einen kostenpflichtigen Tarif und leitet weiter.
+  async function startCheckout(targetPlan: Plan) {
+    setError(null);
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/admin/offices/${officeId}/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: targetPlan }),
+      });
+      const b = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+      if (res.ok && b.url) {
+        window.location.assign(b.url);
+        return;
+      }
+      setError(b.error ?? 'Checkout konnte nicht gestartet werden.');
+    } catch {
+      setError('Netzwerkfehler.');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function patch(body: Record<string, unknown>) {
     setError(null);
@@ -74,21 +101,46 @@ export function OfficeRowActions({
           {active ? 'Deaktivieren' : 'Aktivieren'}
         </button>
         {billingEnabled && (
-          <label className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
-            Tarif
-            <select
-              defaultValue={plan}
+          <>
+            <label className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
+              Tarif
+              <select
+                defaultValue={plan}
+                disabled={busy}
+                onChange={(e) => patch({ plan: e.target.value })}
+                className="rounded-md border border-slate-300 bg-white px-1 py-0.5 text-xs dark:border-slate-700 dark:bg-slate-900"
+              >
+                {PLANS.map((p) => (
+                  <option key={p} value={p}>
+                    {planLabel(p)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
               disabled={busy}
-              onChange={(e) => patch({ plan: e.target.value })}
-              className="rounded-md border border-slate-300 bg-white px-1 py-0.5 text-xs dark:border-slate-700 dark:bg-slate-900"
+              onClick={() => patch({ managedProcessing: !managedProcessing })}
+              className={
+                managedProcessing
+                  ? 'text-brand underline hover:text-brand-accent'
+                  : 'text-slate-500 underline hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+              }
+              title="Fallbearbeitung durch befugte Personen (z. B. Anwält:innen) — Aufpreis-Leistung"
             >
-              {PLANS.map((p) => (
-                <option key={p} value={p}>
-                  {planLabel(p)}
-                </option>
-              ))}
-            </select>
-          </label>
+              {managedProcessing ? 'Bearbeitung: an' : 'Bearbeitung: aus'}
+            </button>
+            {stripeConfigured && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => startCheckout(plan === 'FREE' ? 'PRO' : plan)}
+                className="text-green-600 underline hover:text-green-700 dark:text-green-400"
+              >
+                Abo per Stripe
+              </button>
+            )}
+          </>
         )}
       </div>
       {renaming && (

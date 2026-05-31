@@ -62,3 +62,47 @@ export function canAddHandler(plan: Plan, currentHandlerCount: number): boolean 
   }
   return currentHandlerCount < limit;
 }
+
+/**
+ * Liefert die Stripe-Price-ID fuer einen kostenpflichtigen Tarif aus der
+ * Umgebung (STRIPE_PRICE_PRO / STRIPE_PRICE_ENTERPRISE). FREE hat keinen Preis.
+ * Null, wenn nicht konfiguriert.
+ */
+export function stripePriceIdFor(plan: Plan): string | null {
+  switch (plan) {
+    case 'PRO':
+      return process.env.STRIPE_PRICE_PRO || null;
+    case 'ENTERPRISE':
+      return process.env.STRIPE_PRICE_ENTERPRISE || null;
+    default:
+      return null;
+  }
+}
+
+/**
+ * Darf eine Meldestelle neue Meldungen annehmen? Eine deaktivierte Meldestelle
+ * (`active=false`) niemals. Ein nicht bezahltes Abo (`SUSPENDED`) sperrt die
+ * oeffentliche Meldestrecke ebenfalls — ABER nur, wenn Billing aktiviert ist
+ * (Self-Hoster ohne Billing sind nie gesperrt). Bestehende Faelle bleiben fuer
+ * Bearbeiter:innen unabhaengig davon lesbar (woanders durchgesetzt).
+ */
+export function officeAcceptsReports(office: { active: boolean; planStatus: PlanStatus }): boolean {
+  if (!office.active) {
+    return false;
+  }
+  if (isBillingEnabled() && office.planStatus === 'SUSPENDED') {
+    return false;
+  }
+  return true;
+}
+
+/** Umgekehrte Zuordnung: zu welcher Stripe-Price-ID gehoert welcher Tarif? */
+export function planForStripePriceId(priceId: string): Plan | null {
+  if (priceId && priceId === process.env.STRIPE_PRICE_PRO) {
+    return 'PRO';
+  }
+  if (priceId && priceId === process.env.STRIPE_PRICE_ENTERPRISE) {
+    return 'ENTERPRISE';
+  }
+  return null;
+}

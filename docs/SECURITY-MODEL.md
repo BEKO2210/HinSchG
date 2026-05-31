@@ -147,10 +147,26 @@ Audit-Metadaten; Klartext-Privatkeys in der DB; fehlende Rollendurchsetzung.
   (rückwärtskompatibel). Aktuell erzwungen: maximale Anzahl Bearbeiter:innen je
   Meldestelle bei der Anlage. Tarif/Status sind **SUPERADMIN-only** über
   `PATCH /api/admin/offices/[id]` änderbar und werden als `OFFICE_UPDATED`
-  auditiert. **Keine Zahlungsdaten** im Datenmodell — eine Anbindung an einen
-  externen Zahlungsanbieter (Stripe o. Ä.) ist bewusst noch nicht erfolgt
-  (Phase 10b). `SUSPENDED` ist für diesen späteren Billing-Layer reserviert und
-  hat in 10a noch keine erzwingende Wirkung.
+  auditiert.
+- **Managed-Billing / Stripe (Phase 10b):** Optionale, vollständig abschaltbare
+  Anbindung an Stripe für kommerzielles Managed-Hosting. **Datensparsamkeit:** In
+  der DB liegen ausschließlich undurchsichtige Referenz-IDs (`stripeCustomerId`,
+  `stripeSubscriptionId`) — **niemals** Karten-, Rechnungs- oder Adressdaten
+  (diese verbleiben bei Stripe). Der **Hinweisgeber-Pfad berührt Stripe nie**
+  (kein Tracking, keine Zahlungsdaten). Implementierung ohne SDK-Abhängigkeit:
+  Checkout-Session per REST (`POST /api/admin/offices/[id]/checkout`,
+  SUPERADMIN-only) und ein signaturgeprüfter Webhook
+  (`POST /api/billing/webhook`, HMAC-SHA256 mit `STRIPE_WEBHOOK_SECRET` über den
+  Roh-Body + Replay-Schutz). Der tatsächliche Tarifwechsel passiert **nur** über
+  den verifizierten Webhook, nie clientseitig. **Wirkung von `SUSPENDED`** (nur
+  bei aktivem Billing): die öffentliche Meldestrecke nimmt keine neuen Meldungen
+  mehr an (`/m/[slug]/melden` → 404, `/api/cases` + `/api/office/recipients`
+  liefern nichts), während Bearbeiter:innen bestehende Fälle weiter lesen/
+  bearbeiten können (HinSchG-Fristen laufen, Datenzugang bleibt). Self-Hoster
+  ohne `BILLING_ENABLED` sind nie gesperrt. Die Zusatzleistung „Fallbearbeitung
+  durch befugte Personen" ist ein organisatorisches Flag (`managedProcessing`)
+  ohne Einfluss auf die technische Zugriffstrennung. Aktionen werden als
+  `BILLING_CHECKOUT_STARTED`/`BILLING_SUBSCRIPTION_UPDATED` auditiert (ohne PII).
 - **Metadaten** sind nicht Ende-zu-Ende-verschlüsselt.
 - **Anhänge** (CaseAttachment) sind im Datenmodell vorgesehen, aber noch nicht
   implementiert.
