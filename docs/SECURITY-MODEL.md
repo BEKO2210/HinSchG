@@ -88,9 +88,33 @@ Schweregrad-Einschätzung ist **selbst** vergeben (kein externes Urteil).
 | F6  | Info            | Metadaten (Kategorie, Status, Fristen, Zeitstempel) sind auch bei Stufe 2 serverseitig sichtbar                                            | Bewusst (Dashboard/Compliance); dokumentiert                                                                                                                                                                                                  |
 | F7  | Niedrig         | CSRF: keine separaten CSRF-Token                                                                                                           | Mitigiert durch `SameSite=strict`-Cookies + Same-Origin-`fetch`                                                                                                                                                                               |
 | F8  | Info            | Stufe-1-Betreiber kann Inhalte lesen                                                                                                       | Bewusst; klar kommuniziert (kein Zero-Knowledge)                                                                                                                                                                                              |
+| F9  | Mittel (Bug)    | OIDC-Flow-Cookie (state + PKCE-Verifier) nutzte `SameSite=strict`; bei der Top-Level-Rückleitung vom IdP sendet der Browser es nicht → SSO-Login schlug immer fehl (kein Sicherheitsleck, aber Funktionsbruch) | **Behoben:** dediziertes `oidcFlowCookieOptions` mit `SameSite=lax` (sendet nur bei Top-Level-Navigation, behält httpOnly/secure); state/PKCE-Prüfung unverändert streng |
+
+Befunde des Review zu Multi-Tenant / Billing / SSO (Phasen 9–10):
+
+- **Mandantentrennung (Phase 9):** Alle Admin-Lese-/Schreibpfade (Fall-Detail,
+  Status, Severity, Acknowledge, Messages, E2E-Messages, Recovery, Bearbeiter,
+  Reset, Keys, Audit, E2E-Seite) sind auf `session.o` gescopt; fremde Fall-/
+  Bearbeiter-IDs liefern 404. SUPERADMIN-Office-Routen sind absichtlich
+  instanzweit, aber strikt `SUPERADMIN`-only. **Kein Cross-Tenant-Leck gefunden.**
+- **Stripe-Billing (Phase 10b):** Webhook prüft die HMAC-SHA256-Signatur über den
+  **Roh-Body** (`request.text()`) **vor** jeder DB-Änderung, timing-safe, mit
+  Replay-Schutz; eine Fälschung ohne `STRIPE_WEBHOOK_SECRET` ist nicht möglich.
+  Checkout ist `SUPERADMIN`-only. In der DB liegen nur undurchsichtige
+  Referenz-IDs — keine Karten-/Adressdaten, keine Anbieter-Fehlerdetails nach außen.
+- **SSO/OIDC (Phase 10c):** `state`-CSRF-Prüfung exakt gegen das signierte
+  Flow-Cookie, PKCE S256 mit 256-bit-Verifier, `email_verified` wird erzwungen,
+  **kein Auto-Provisioning** (nur existierende Bearbeiter:innen; Rolle/officeId aus
+  der DB, nicht aus dem IdP-Token). Redirect-Ziele sind auf die eigene Origin mit
+  festen Pfaden beschränkt (kein Open-Redirect). Außer **F9** keine Befunde.
+- **Datenminimierung:** Keine `console.*`-Ausgaben in `src/`; keine Access-Token-/
+  PII-Logs; Audit-`metadata` der neuen Aktionen (`OFFICE_*`, `BILLING_*`,
+  `LOGIN_SUCCESS via=sso`) enthält nur IDs/Enums/Slugs/Flags. Der Hinweisgeber-Pfad
+  speichert weiterhin keine IP/User-Agent/Stripe-/IdP-Daten.
 
 Im Review **nicht** gefunden: Klartext-Token/PII/Inhalte in Logs oder
-Audit-Metadaten; Klartext-Privatkeys in der DB; fehlende Rollendurchsetzung.
+Audit-Metadaten; Klartext-Privatkeys in der DB; fehlende Rollendurchsetzung;
+Cross-Tenant-Datenzugriff.
 
 ---
 
