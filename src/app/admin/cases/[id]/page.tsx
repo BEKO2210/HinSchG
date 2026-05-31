@@ -62,13 +62,13 @@ function formatDateTime(value: Date): string {
   return value.toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' });
 }
 
-export default async function AdminCasePage({ params }: { params: { id: string } }) {
-  const session = requireAdminSession(['ADMIN', 'HANDLER']);
+export default async function AdminCasePage({ params }: { params: Promise<{ id: string }> }) {
+  const session = await requireAdminSession(['ADMIN', 'HANDLER']);
 
   const found = await prisma.case.findFirst({
     // Mandantentrennung: Fall muss zur Meldestelle der Session gehoeren,
     // sonst 404 (verhindert Cross-Tenant-Zugriff per Fall-ID).
-    where: { id: params.id, officeId: session.o },
+    where: { id: (await params).id, officeId: session.o },
     select: {
       id: true,
       status: true,

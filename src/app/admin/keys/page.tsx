@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 export default async function KeysPage() {
-  const session = requireAdminSession(['ADMIN', 'HANDLER']);
+  const session = await requireAdminSession(['ADMIN', 'HANDLER']);
   const handler = await prisma.handler.findUnique({
     where: { id: session.h },
     select: { publicKey: true },

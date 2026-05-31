@@ -40,7 +40,7 @@ export async function GET(request: Request): Promise<NextResponse> {
   const code = params.get('code') ?? '';
   const state = params.get('state') ?? '';
 
-  const flow = verifyOidcFlowState(cookies().get(OIDC_FLOW_COOKIE)?.value);
+  const flow = verifyOidcFlowState((await cookies()).get(OIDC_FLOW_COOKIE)?.value);
   // state-Vergleich (CSRF): Cookie muss existieren und exakt passen.
   if (!flow || !state || state !== flow.st || !code) {
     return loginRedirect(request, 'ungueltig');

@@ -17,9 +17,9 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  const guard = adminApiGuard(['ADMIN']);
+  const guard = await adminApiGuard(['ADMIN']);
   if ('error' in guard) {
     return guard.error;
   }
@@ -43,7 +43,7 @@ export async function POST(
 
   // Mandantentrennung: nur Bearbeiter:innen der eigenen Meldestelle.
   const target = await prisma.handler.findFirst({
-    where: { id: params.id, officeId: guard.session.o },
+    where: { id: (await params).id, officeId: guard.session.o },
     select: { id: true },
   });
   if (!target) {

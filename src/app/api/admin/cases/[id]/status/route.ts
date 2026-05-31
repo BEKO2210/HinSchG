@@ -10,9 +10,9 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  const guard = adminApiGuard(['ADMIN', 'HANDLER']);
+  const guard = await adminApiGuard(['ADMIN', 'HANDLER']);
   if ('error' in guard) {
     return guard.error;
   }
@@ -29,7 +29,7 @@ export async function POST(
   }
 
   const existing = await prisma.case.findFirst({
-    where: { id: params.id, officeId: guard.session.o },
+    where: { id: (await params).id, officeId: guard.session.o },
     select: { id: true, status: true },
   });
   if (!existing) {

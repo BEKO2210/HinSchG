@@ -21,14 +21,16 @@ function formatDateTime(value: Date): string {
 export default async function AuditPage({
   searchParams,
 }: {
-  searchParams: { action?: string; caseId?: string; page?: string };
+  // Next 15: searchParams ist ein Promise.
+  searchParams: Promise<{ action?: string; caseId?: string; page?: string }>;
 }) {
   // Nur ADMIN und AUDITOR; serverseitig erzwungen.
-  const session = requireAdminSession(['ADMIN', 'AUDITOR']);
+  const session = await requireAdminSession(['ADMIN', 'AUDITOR']);
 
-  const actionFilter = isAuditAction(searchParams.action) ? searchParams.action : undefined;
-  const caseIdFilter = searchParams.caseId?.trim() || undefined;
-  const page = Math.max(1, Number(searchParams.page ?? '1') || 1);
+  const sp = await searchParams;
+  const actionFilter = isAuditAction(sp.action) ? sp.action : undefined;
+  const caseIdFilter = sp.caseId?.trim() || undefined;
+  const page = Math.max(1, Number(sp.page ?? '1') || 1);
 
   // Mandantentrennung: nur Audit-Eintraege der eigenen Meldestelle.
   const where: Prisma.AuditLogWhereInput = { officeId: session.o };
@@ -167,7 +169,7 @@ export default async function AuditPage({
         <span className="flex gap-2">
           {page > 1 && (
             <Link
-              href={{ pathname: '/admin/audit', query: { ...searchParams, page: page - 1 } }}
+              href={{ pathname: '/admin/audit', query: { ...sp, page: page - 1 } }}
               className="rounded-md border border-slate-300 px-3 py-1.5 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900"
             >
               Zurück
@@ -175,7 +177,7 @@ export default async function AuditPage({
           )}
           {page < totalPages && (
             <Link
-              href={{ pathname: '/admin/audit', query: { ...searchParams, page: page + 1 } }}
+              href={{ pathname: '/admin/audit', query: { ...sp, page: page + 1 } }}
               className="rounded-md border border-slate-300 px-3 py-1.5 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900"
             >
               Weiter

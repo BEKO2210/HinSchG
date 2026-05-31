@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 };
 
 export default async function HandlersPage() {
-  requireAdminSession(['ADMIN']);
+  await requireAdminSession(['ADMIN']);
 
   const handlers = await prisma.handler.findMany({
     orderBy: { createdAt: 'asc' },

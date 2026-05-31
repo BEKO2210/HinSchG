@@ -24,9 +24,9 @@ interface PatchBody {
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ): Promise<NextResponse> {
-  const guard = adminApiGuard(['SUPERADMIN']);
+  const guard = await adminApiGuard(['SUPERADMIN']);
   if ('error' in guard) {
     return guard.error;
   }
@@ -81,7 +81,7 @@ export async function PATCH(
   }
 
   const existing = await prisma.reportingOffice.findUnique({
-    where: { id: params.id },
+    where: { id: (await params).id },
     select: { id: true },
   });
   if (!existing) {

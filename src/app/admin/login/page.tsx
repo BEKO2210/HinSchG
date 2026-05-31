@@ -20,12 +20,18 @@ const SSO_ERRORS: Record<string, string> = {
   kein_konto: 'Für diese E-Mail existiert kein Bearbeiter-Konto.',
 };
 
-export default function AdminLoginPage({ searchParams }: { searchParams: { sso_error?: string } }) {
-  if (getAdminSession()) {
+export default async function AdminLoginPage({
+  searchParams,
+}: {
+  // Next 15: searchParams ist ein Promise.
+  searchParams: Promise<{ sso_error?: string }>;
+}) {
+  if (await getAdminSession()) {
     redirect('/admin');
   }
   const ssoEnabled = isOidcEnabled();
-  const ssoError = searchParams.sso_error ? SSO_ERRORS[searchParams.sso_error] : undefined;
+  const { sso_error } = await searchParams;
+  const ssoError = sso_error ? SSO_ERRORS[sso_error] : undefined;
   return (
     <main id="hauptinhalt" tabIndex={-1} className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-6 py-12">
       <header className="flex flex-col gap-2">

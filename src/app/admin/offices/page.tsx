@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 // Metadaten + Zähler angezeigt — KEINE Fall-Inhalte (der Superadmin ist Teil des
 // Bedrohungsmodells und erhält bewusst keinen Inhaltszugriff).
 export default async function OfficesPage() {
-  requireAdminSession(['SUPERADMIN']);
+  await requireAdminSession(['SUPERADMIN']);
 
   const offices = await prisma.reportingOffice.findMany({
     orderBy: { createdAt: 'asc' },
