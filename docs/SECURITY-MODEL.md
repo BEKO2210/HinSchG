@@ -167,6 +167,20 @@ Audit-Metadaten; Klartext-Privatkeys in der DB; fehlende Rollendurchsetzung.
   durch befugte Personen" ist ein organisatorisches Flag (`managedProcessing`)
   ohne Einfluss auf die technische Zugriffstrennung. Aktionen werden als
   `BILLING_CHECKOUT_STARTED`/`BILLING_SUBSCRIPTION_UPDATED` auditiert (ohne PII).
+- **SSO / OpenID Connect (Phase 10c):** Optionales, vollständig abschaltbares
+  Single-Sign-On **ausschließlich für Bearbeiter:innen** — der Hinweisgeber-Pfad
+  bleibt unberührt (kein IdP, keine Accounts, anonym über Token). Aktiv nur, wenn
+  die `OIDC_*`-Variablen vollständig gesetzt sind. Ablauf: Authorization-Code-Flow
+  mit **PKCE (S256)** und **state** (CSRF-Schutz); beides liegt während des
+  Redirects in einem kurzlebigen, signierten httpOnly-Cookie (keine DB). Die
+  verifizierte E-Mail wird server-to-server am `userinfo`-Endpoint (HTTPS) geholt
+  — kein selbstgebauter JWT-Parser. **Kein Auto-Provisioning:** nur eine bereits
+  angelegte Bearbeiter:in mit beim IdP **bestätigter** E-Mail wird angemeldet;
+  unbekannte/unbestätigte Identitäten werden abgelehnt (der IdP kann keine Konten
+  oder Rollen erzeugen). **MFA wird an den IdP delegiert** (SSO-Standard); der
+  lokale Passwort+TOTP-Pfad bleibt unverändert daneben bestehen. Die erzeugte
+  Session ist identisch zum lokalen Login (officeId-gebunden, Phase 9a). Erfolg
+  wird als `LOGIN_SUCCESS` mit `metadata.via = "sso"` auditiert.
 - **Metadaten** sind nicht Ende-zu-Ende-verschlüsselt.
 - **Anhänge** (CaseAttachment) sind im Datenmodell vorgesehen, aber noch nicht
   implementiert.
