@@ -84,7 +84,7 @@ Schweregrad-Einschätzung ist **selbst** vergeben (kein externes Urteil).
 | F2  | Niedrig         | WB-Token liegt während der Postfach-Sitzung im `sessionStorage` (XSS-Exposition)                                                           | Mitigiert durch strikte, nonce-basierte CSP; nur Tab-lokal; Alternativen im Audit prüfen                                                                                                                                                      |
 | F3  | Niedrig         | In-Memory Rate-Limiting/Backoff sind **pro Instanz**                                                                                       | Für Multi-Instanz-Betrieb gemeinsamen Speicher (z. B. Redis) ergänzen; dokumentiert                                                                                                                                                           |
 | F4  | Info            | CSP enthält `'wasm-unsafe-eval'` (für libsodium) und `style-src 'unsafe-inline'`                                                           | Notwendig bzw. geringes Risiko; Skripte weiterhin nonce-/`strict-dynamic`-geschützt                                                                                                                                                           |
-| F5  | Mittel (Design) | Org-Recovery hatte zunächst keinen Use-Flow                                                                                                | **Adressiert:** Recovery-Re-Wrap (`/api/admin/cases/[id]/recovery`) verpackt den Inhaltsschlüssel per Recovery-Passphrase im Browser neu und gewährt Bearbeiter:innen Zugriff. **Offen:** Schlüssel-Reset (neues Keypaar) bei Passwortverlust |
+| F5  | Mittel (Design) | Org-Recovery hatte zunächst keinen Use-Flow; Passwortverlust band den privaten Schlüssel                                                   | **Adressiert:** Recovery-Re-Wrap (`/api/admin/cases/[id]/recovery`) verpackt den Inhaltsschlüssel per Recovery-Passphrase im Browser neu und gewährt Bearbeiter:innen Zugriff. **Adressiert:** Schlüssel-Reset (`/api/admin/handlers/[id]/reset`, nur ADMIN) setzt ein neues Initialpasswort, verwirft das alte Keypaar; die Person richtet ein neues ein, danach Re-Wrap |
 | F6  | Info            | Metadaten (Kategorie, Status, Fristen, Zeitstempel) sind auch bei Stufe 2 serverseitig sichtbar                                            | Bewusst (Dashboard/Compliance); dokumentiert                                                                                                                                                                                                  |
 | F7  | Niedrig         | CSRF: keine separaten CSRF-Token                                                                                                           | Mitigiert durch `SameSite=strict`-Cookies + Same-Origin-`fetch`                                                                                                                                                                               |
 | F8  | Info            | Stufe-1-Betreiber kann Inhalte lesen                                                                                                       | Bewusst; klar kommuniziert (kein Zero-Knowledge)                                                                                                                                                                                              |
@@ -100,9 +100,14 @@ Audit-Metadaten; Klartext-Privatkeys in der DB; fehlende Rollendurchsetzung.
   eingerichtet; daher „Ende-zu-Ende", nicht „Zero-Knowledge").
 - **Recovery-Re-Wrap vorhanden (F5):** Mit der Org-Recovery-Passphrase kann ein:e
   ADMIN den Fallzugriff für Bearbeiter:innen im Browser wiederherstellen (z. B.
-  neu hinzugefügte Bearbeiter:innen). **Offen:** ein **Schlüssel-Reset** für
-  Personen, die ihr Passwort verloren haben (neues Keypaar + anschließendes
-  Re-Wrap). Restrisiko: Gehen **alle** Bearbeiter-Schlüssel **und** die
+  neu hinzugefügte Bearbeiter:innen).
+- **Schlüssel-Reset vorhanden (F5):** Verliert ein:e Bearbeiter:in das Passwort,
+  ist der daran gebundene private Schlüssel unbrauchbar. Ein:e ADMIN setzt über
+  `/api/admin/handlers/[id]/reset` ein neues Initialpasswort und verwirft das alte
+  Keypaar (`publicKey`/`encryptedPrivateKey` → `null`, Audit `HANDLER_RESET`). Die
+  Person richtet beim nächsten Login ein neues Keypaar ein; den Zugriff auf
+  bestehende E2E-Fälle stellt ein:e ADMIN anschließend per Recovery-Re-Wrap wieder
+  her. Restrisiko: Gehen **alle** Bearbeiter-Schlüssel **und** die
   Recovery-Passphrase verloren, ist ein Fall nicht wiederherstellbar — daher
   Recovery-Passphrase sicher verwahren und mehrere Bearbeiter:innen einbinden.
 - **Rate-Limiting** ist nicht instanzenübergreifend.
