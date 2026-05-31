@@ -18,7 +18,7 @@ export const ADMIN_COOKIE = 'hinschg_admin';
 export const ADMIN_SESSION_TTL_SECONDS = 60 * 60; // 60 Minuten
 
 export const ADMIN_PREAUTH_COOKIE = 'hinschg_admin_pre';
-export const ADMIN_PREAUTH_TTL_SECONDS = 5 * 60; // 5 Minuten fuer den 2FA-Schritt
+export const ADMIN_PREAUTH_TTL_SECONDS = 5 * 60; // 5 Minuten für den 2FA-Schritt
 
 export type HandlerRole = 'ADMIN' | 'HANDLER' | 'AUDITOR';
 
@@ -43,7 +43,7 @@ function hmacSign(data: string): string {
   return createHmac('sha256', getSessionSecret()).update(data).digest('base64url');
 }
 
-/** Signiert beliebige Daten mit Ablaufzeit; Rueckgabe ist der Cookie-Wert. */
+/** Signiert beliebige Daten mit Ablaufzeit; Rückgabe ist der Cookie-Wert. */
 function signToken<T>(data: T, ttlSeconds: number): string {
   const envelope: SignedEnvelope<T> = {
     d: data,
@@ -53,7 +53,7 @@ function signToken<T>(data: T, ttlSeconds: number): string {
   return `${encoded}.${hmacSign(encoded)}`;
 }
 
-/** Verifiziert Signatur + Ablauf und gibt die Nutzdaten zurueck (oder null). */
+/** Verifiziert Signatur + Ablauf und gibt die Nutzdaten zurück (oder null). */
 function verifyToken<T>(value: string | undefined): T | null {
   if (!value) {
     return null;
@@ -95,7 +95,7 @@ export function sessionCookieOptions(maxAgeSeconds: number) {
   };
 }
 
-/** @deprecated Alias fuer {@link sessionCookieOptions}. */
+/** @deprecated Alias für {@link sessionCookieOptions}. */
 export const inboxCookieOptions = sessionCookieOptions;
 
 // --- Postfach-Session (Hinweisgeber) ----------------------------------------
@@ -146,7 +146,7 @@ export interface AdminPreAuth {
   h: string;
   /** true, wenn TOTP erstmalig eingerichtet wird */
   setup: boolean;
-  /** verschluesseltes TOTP-Secret (nur waehrend des Setups) */
+  /** verschlüsseltes TOTP-Secret (nur während des Setups) */
   s?: string;
 }
 

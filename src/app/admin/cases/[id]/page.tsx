@@ -1,20 +1,27 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { cookies } from 'next/headers';
-import { InboxLogin } from '@/components/InboxLogin';
-import { InboxReplyForm } from '@/components/InboxReplyForm';
-import { LogoutButton } from '@/components/LogoutButton';
-import { caseStatusLabel } from '@/lib/case-status';
+import { notFound } from 'next/navigation';
+import { AcknowledgeButton } from '@/components/AcknowledgeButton';
+import { CaseStatusControls } from '@/components/CaseStatusControls';
+import { DeadlineBadge } from '@/components/DeadlineBadge';
+import { OfficeReplyForm } from '@/components/OfficeReplyForm';
+import { requireAdminSession } from '@/lib/admin-auth';
+import { categoryLabel } from '@/lib/cases';
+import { caseStatusLabel, severityLabel } from '@/lib/case-status';
 import { decryptPayload } from '@/lib/crypto';
 import { prisma } from '@/lib/db';
-import { INBOX_COOKIE, verifyInboxSession } from '@/lib/session';
+import {
+  ACK_WARN_MS,
+  FEEDBACK_WARN_MS,
+  formatDeadlineRelative,
+  trafficLight,
+} from '@/lib/deadlines';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Postfach — HinSchG',
-  description: 'Anonymes Postfach: Stand verfolgen und mit der Meldestelle kommunizieren.',
+  title: 'Fall — HinSchG',
 };
 
 interface ReportContent {
@@ -52,49 +59,19 @@ function formatDateTime(value: Date): string {
   return value.toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' });
 }
 
-function formatDate(value: Date): string {
-  return value.toLocaleDateString('de-DE', { dateStyle: 'medium' });
-}
-
-function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 px-6 py-12">
-      {children}
-    </main>
-  );
-}
-
-export default async function PostfachPage() {
-  const caseId = verifyInboxSession(cookies().get(INBOX_COOKIE)?.value);
-
-  if (!caseId) {
-    return (
-      <Shell>
-        <header className="flex flex-col gap-3">
-          <Link
-            href="/"
-            className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-          >
-            ← Startseite
-          </Link>
-          <h1 className="text-3xl font-semibold tracking-tight">Postfach öffnen</h1>
-          <p className="text-slate-600 dark:text-slate-300">
-            Geben Sie Ihren Zugangscode ein, um den Stand Ihrer Meldung zu sehen und mit der
-            Meldestelle zu kommunizieren. Es ist kein Konto nötig.
-          </p>
-        </header>
-        <InboxLogin />
-      </Shell>
-    );
-  }
+export default async function AdminCasePage({ params }: { params: { id: string } }) {
+  const session = requireAdminSession(['ADMIN', 'HANDLER']);
 
   const found = await prisma.case.findUnique({
-    where: { id: caseId },
+    where: { id: params.id },
     select: {
+      id: true,
       status: true,
+      severity: true,
       category: true,
       encryptedPayload: true,
       acknowledgedAt: true,
+      feedbackSentAt: true,
       deadlineAck: true,
       deadlineFeedback: true,
       createdAt: true,
@@ -102,62 +79,75 @@ export default async function PostfachPage() {
         orderBy: { createdAt: 'asc' },
         select: { id: true, direction: true, encryptedBody: true, createdAt: true },
       },
+      statusHistory: {
+        orderBy: { createdAt: 'asc' },
+        select: { id: true, fromStatus: true, toStatus: true, createdAt: true },
+      },
     },
   });
 
   if (!found) {
-    // Session zeigt auf einen nicht (mehr) vorhandenen Fall.
-    return (
-      <Shell>
-        <h1 className="text-2xl font-semibold">Fall nicht gefunden</h1>
-        <p className="text-slate-600 dark:text-slate-300">Diese Sitzung ist nicht mehr gültig.</p>
-        <LogoutButton />
-      </Shell>
-    );
+    notFound();
   }
 
+  // Lesezugriff protokollieren (jeder Fallzugriff ist nachvollziehbar).
+  await prisma.auditLog.create({
+    data: { actorType: 'HANDLER', actorId: session.h, action: 'CASE_VIEWED', caseId: found.id },
+  });
+
   const report = parseReport(found.encryptedPayload);
+  const now = Date.now();
+  const ackLevel = trafficLight(found.deadlineAck, found.acknowledgedAt !== null, ACK_WARN_MS, now);
+  const feedbackLevel = trafficLight(
+    found.deadlineFeedback,
+    found.feedbackSentAt !== null,
+    FEEDBACK_WARN_MS,
+    now,
+  );
 
   return (
-    <Shell>
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex flex-col gap-2">
-          <Link
-            href="/"
-            className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-          >
-            ← Startseite
-          </Link>
-          <h1 className="text-3xl font-semibold tracking-tight">Ihr Postfach</h1>
-        </div>
-        <LogoutButton />
+    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-6 py-12">
+      <header className="flex flex-col gap-2">
+        <Link
+          href="/admin"
+          className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+        >
+          ← Dashboard
+        </Link>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Fall <span className="font-mono">{found.id.slice(0, 8)}</span>
+        </h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Eingegangen am {formatDateTime(found.createdAt)} · {categoryLabel(found.category)}
+        </p>
       </header>
 
-      <section className="grid gap-3 rounded-md border border-slate-200 p-4 text-sm dark:border-slate-800">
-        <div className="flex justify-between gap-4">
-          <span className="text-slate-500 dark:text-slate-400">Status</span>
-          <span className="font-medium">{caseStatusLabel(found.status)}</span>
+      <section className="flex flex-col gap-4 rounded-md border border-slate-200 p-4 dark:border-slate-800">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <AcknowledgeButton caseId={found.id} acknowledged={found.acknowledgedAt !== null} />
+          <div className="flex flex-wrap gap-2">
+            <DeadlineBadge
+              level={ackLevel}
+              label={`Eingang: ${found.acknowledgedAt ? 'bestätigt' : formatDeadlineRelative(found.deadlineAck, now)}`}
+            />
+            <DeadlineBadge
+              level={feedbackLevel}
+              label={`Rückmeldung: ${found.feedbackSentAt ? 'erfolgt' : formatDeadlineRelative(found.deadlineFeedback, now)}`}
+            />
+          </div>
         </div>
-        <div className="flex justify-between gap-4">
-          <span className="text-slate-500 dark:text-slate-400">Eingangsbestätigung</span>
-          <span className="font-medium">
-            {found.acknowledgedAt
-              ? `bestätigt am ${formatDate(found.acknowledgedAt)}`
-              : `ausstehend (Frist: ${formatDate(found.deadlineAck)})`}
-          </span>
-        </div>
-        <div className="flex justify-between gap-4">
-          <span className="text-slate-500 dark:text-slate-400">Rückmeldung Folgemaßnahmen</span>
-          <span className="font-medium">bis {formatDate(found.deadlineFeedback)}</span>
-        </div>
+        <CaseStatusControls caseId={found.id} status={found.status} severity={found.severity} />
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Aktuell: {caseStatusLabel(found.status)} · {severityLabel(found.severity)}
+        </p>
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">Verlauf</h2>
+        <h2 className="text-lg font-semibold">Meldung &amp; Verlauf</h2>
 
         <article className="rounded-md border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
           <div className="mb-1 flex justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
-            <span className="font-medium">Ihre Meldung</span>
+            <span className="font-medium">Hinweisgeber (Meldung)</span>
             <span>{formatDateTime(found.createdAt)}</span>
           </div>
           <p className="whitespace-pre-wrap break-words">{report.description}</p>
@@ -171,7 +161,7 @@ export default async function PostfachPage() {
               )}
               {report.contact && (
                 <div className="flex gap-2">
-                  <dt>Ihre Kontaktangabe:</dt>
+                  <dt>Freiwillige Kontaktangabe:</dt>
                   <dd className="break-all">{report.contact}</dd>
                 </div>
               )}
@@ -191,7 +181,7 @@ export default async function PostfachPage() {
               }`}
             >
               <div className="mb-1 flex justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
-                <span className="font-medium">{fromOffice ? 'Meldestelle' : 'Sie'}</span>
+                <span className="font-medium">{fromOffice ? 'Meldestelle' : 'Hinweisgeber'}</span>
                 <span>{formatDateTime(message.createdAt)}</span>
               </div>
               <p className="whitespace-pre-wrap break-words">
@@ -203,8 +193,8 @@ export default async function PostfachPage() {
       </section>
 
       <section className="border-t border-slate-200 pt-6 dark:border-slate-800">
-        <InboxReplyForm />
+        <OfficeReplyForm caseId={found.id} />
       </section>
-    </Shell>
+    </main>
   );
 }

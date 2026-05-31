@@ -14,7 +14,7 @@ import {
 } from './index';
 
 beforeAll(() => {
-  // Deterministischer, gueltiger 32-Byte-Master-Key fuer die Tests.
+  // Deterministischer, gültiger 32-Byte-Master-Key für die Tests.
   process.env.MASTER_ENCRYPTION_KEY = Buffer.from(randomBytes(32)).toString('base64');
   resetMasterKeyCache();
 });
@@ -38,7 +38,7 @@ describe('generateReceiptToken', () => {
 });
 
 describe('hashToken / verifyToken', () => {
-  it('verifiziert den korrekten Token, unabhaengig von Formatierung', () => {
+  it('verifiziert den korrekten Token, unabhängig von Formatierung', () => {
     const token = generateReceiptToken();
     const hash = hashToken(token);
     expect(verifyToken(token, hash)).toBe(true);
@@ -60,20 +60,20 @@ describe('hashToken / verifyToken', () => {
 });
 
 describe('tokenBlindIndex', () => {
-  it('ist deterministisch und unabhaengig von der Formatierung', () => {
+  it('ist deterministisch und unabhängig von der Formatierung', () => {
     const token = generateReceiptToken();
     const index = tokenBlindIndex(token);
     expect(index).toMatch(/^[0-9a-f]{64}$/); // HMAC-SHA256 hex
     expect(tokenBlindIndex(token.replace(/-/g, '').toLowerCase())).toBe(index);
   });
 
-  it('liefert fuer verschiedene Tokens verschiedene Indizes', () => {
+  it('liefert für verschiedene Tokens verschiedene Indizes', () => {
     expect(tokenBlindIndex(generateReceiptToken())).not.toBe(
       tokenBlindIndex(generateReceiptToken()),
     );
   });
 
-  it('enthaelt den Klartext-Token nicht', () => {
+  it('enthält den Klartext-Token nicht', () => {
     const token = generateReceiptToken();
     expect(tokenBlindIndex(token)).not.toContain(normalizeReceiptToken(token));
   });
@@ -90,12 +90,12 @@ describe('hashPassword / verifyPassword', () => {
     expect(verifyPassword('falsches-Passwort', hash)).toBe(false);
   });
 
-  it('erzeugt durch zufaelliges Salt unterschiedliche Hashes', () => {
+  it('erzeugt durch zufälliges Salt unterschiedliche Hashes', () => {
     expect(hashPassword('gleiches-Passwort')).not.toBe(hashPassword('gleiches-Passwort'));
   });
 
   it('lehnt einen kaputten Hash-String ab', () => {
-    expect(verifyPassword('egal', 'kein-gueltiger-hash')).toBe(false);
+    expect(verifyPassword('egal', 'kein-gültiger-hash')).toBe(false);
   });
 });
 
@@ -105,7 +105,7 @@ describe('encryptPayload / decryptPayload', () => {
     expect(decryptPayload(encryptPayload(plaintext))).toBe(plaintext);
   });
 
-  it('erzeugt bei gleichem Klartext unterschiedliche Ciphertexte (zufaellige Nonce)', () => {
+  it('erzeugt bei gleichem Klartext unterschiedliche Ciphertexte (zufällige Nonce)', () => {
     const plaintext = 'identischer Inhalt';
     expect(encryptPayload(plaintext)).not.toBe(encryptPayload(plaintext));
   });

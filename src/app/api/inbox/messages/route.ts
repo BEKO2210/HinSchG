@@ -1,7 +1,7 @@
 // HinSchG — API: Antwort des Hinweisgebers im Postfach
 //
-// Erfordert eine gueltige, an den Fall gebundene Session. Die Nachricht wird
-// verschluesselt gespeichert (CaseMessage, direction=FROM_WHISTLEBLOWER) und im
+// Erfordert eine gültige, an den Fall gebundene Session. Die Nachricht wird
+// verschlüsselt gespeichert (CaseMessage, direction=FROM_WHISTLEBLOWER) und im
 // Audit-Log ohne Inhalt vermerkt.
 
 import { cookies } from 'next/headers';
@@ -31,7 +31,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   const limit = rateLimit(`msg:${key}`, MSG_LIMIT, MSG_WINDOW_MS);
   if (!limit.ok) {
     return NextResponse.json(
-      { error: 'Zu viele Nachrichten. Bitte spaeter erneut versuchen.' },
+      { error: 'Zu viele Nachrichten. Bitte später erneut versuchen.' },
       { status: 429, headers: { 'Retry-After': String(limit.retryAfterSec) } },
     );
   }
@@ -40,7 +40,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     raw = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Ungueltiges JSON.' }, { status: 400 });
+    return NextResponse.json({ error: 'Ungültiges JSON.' }, { status: 400 });
   }
   const bodyText =
     typeof raw === 'object' &&
@@ -53,12 +53,12 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
   if (bodyText.length > MESSAGE_MAX) {
     return NextResponse.json(
-      { error: `Die Nachricht darf hoechstens ${MESSAGE_MAX} Zeichen lang sein.` },
+      { error: `Die Nachricht darf höchstens ${MESSAGE_MAX} Zeichen lang sein.` },
       { status: 400 },
     );
   }
 
-  // Sicherstellen, dass der Fall existiert (Session koennte auf geloeschten Fall zeigen).
+  // Sicherstellen, dass der Fall existiert (Session könnte auf gelöschten Fall zeigen).
   const existing = await prisma.case.findUnique({ where: { id: caseId }, select: { id: true } });
   if (!existing) {
     return NextResponse.json({ error: 'Fall nicht gefunden.' }, { status: 404 });

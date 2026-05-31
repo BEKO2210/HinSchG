@@ -1,4 +1,4 @@
-// HinSchG — API: Bearbeiter-Logout (Session + Pre-Auth-Cookie loeschen)
+// HinSchG — API: Bearbeiter-Logout (Session + Pre-Auth-Cookie löschen)
 
 import { NextResponse } from 'next/server';
 import { ADMIN_COOKIE, ADMIN_PREAUTH_COOKIE, sessionCookieOptions } from '@/lib/session';

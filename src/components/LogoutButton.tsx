@@ -26,7 +26,7 @@ export function LogoutButton() {
       disabled={submitting}
       className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-900"
     >
-      Postfach schliessen
+      Postfach schließen
     </button>
   );
 }

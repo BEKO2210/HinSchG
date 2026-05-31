@@ -2,7 +2,7 @@
 //
 // Erfordert den Pre-Auth-Cookie aus Schritt 1. Bei Erfolg wird die eigentliche
 // Admin-Session erteilt; beim erstmaligen Setup wird das (verifizierte) Secret
-// verschluesselt persistiert.
+// verschlüsselt persistiert.
 
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
@@ -44,14 +44,14 @@ export async function POST(request: Request): Promise<NextResponse> {
   const backoff = authThrottleStatus(key);
   if (backoff.blocked) {
     return NextResponse.json(
-      { error: 'Zu viele Versuche. Bitte spaeter erneut.' },
+      { error: 'Zu viele Versuche. Bitte später erneut.' },
       { status: 429, headers: { 'Retry-After': String(Math.max(backoff.retryAfterSec, 1)) } },
     );
   }
   const limit = rateLimit(key, TOTP_LIMIT, TOTP_WINDOW_MS);
   if (!limit.ok) {
     return NextResponse.json(
-      { error: 'Zu viele Versuche. Bitte spaeter erneut.' },
+      { error: 'Zu viele Versuche. Bitte später erneut.' },
       { status: 429, headers: { 'Retry-After': String(limit.retryAfterSec) } },
     );
   }
@@ -60,7 +60,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     raw = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Ungueltiges JSON.' }, { status: 400 });
+    return NextResponse.json({ error: 'Ungültiges JSON.' }, { status: 400 });
   }
   const body = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
   const code = typeof body.code === 'string' ? body.code.trim() : '';
@@ -93,7 +93,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     await prisma.auditLog.create({
       data: { actorType: 'HANDLER', actorId: handler.id, action: '2FA_FAILED' },
     });
-    return NextResponse.json({ error: 'Ungueltiger 2FA-Code.' }, { status: 401 });
+    return NextResponse.json({ error: 'Ungültiger 2FA-Code.' }, { status: 401 });
   }
 
   // Erfolg: beim Setup das verifizierte Secret persistieren.

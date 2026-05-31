@@ -60,7 +60,7 @@ export function InboxLogin() {
           className="rounded-md border border-slate-300 bg-white px-3 py-2 font-mono tracking-wider dark:border-slate-700 dark:bg-slate-900"
         />
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          Den Code haben Sie beim Absenden Ihrer Meldung erhalten. Gross-/Kleinschreibung und
+          Den Code haben Sie beim Absenden Ihrer Meldung erhalten. Groß-/Kleinschreibung und
           Bindestriche sind egal.
         </p>
       </div>
@@ -79,7 +79,7 @@ export function InboxLogin() {
         disabled={submitting}
         className="rounded-md bg-brand px-4 py-2.5 font-medium text-white hover:bg-brand-accent disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {submitting ? 'Wird geprueft …' : 'Postfach oeffnen'}
+        {submitting ? 'Wird geprüft …' : 'Postfach öffnen'}
       </button>
     </form>
   );

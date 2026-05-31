@@ -69,7 +69,7 @@ export function CreateHandlerForm() {
           className="rounded-md border border-slate-300 bg-white px-3 py-2 dark:border-slate-700 dark:bg-slate-900"
         />
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          Mindestens {HANDLER_PASSWORD_MIN} Zeichen. Sicher uebergeben; beim ersten Login folgt die
+          Mindestens {HANDLER_PASSWORD_MIN} Zeichen. Sicher übergeben; beim ersten Login folgt die
           2FA-Einrichtung.
         </p>
       </div>

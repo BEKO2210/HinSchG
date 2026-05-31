@@ -1,7 +1,7 @@
-// HinSchG — TOTP (2FA) fuer Bearbeiter
+// HinSchG — TOTP (2FA) für Bearbeiter
 //
 // Nutzt otplib (Standard-TOTP, kompatibel mit Authenticator-Apps). Das Secret
-// wird ausserhalb dieses Moduls verschluesselt (encryptPayload) gespeichert.
+// wird außerhalb dieses Moduls verschlüsselt (encryptPayload) gespeichert.
 
 import { authenticator } from 'otplib';
 import QRCode from 'qrcode';
@@ -21,7 +21,7 @@ export function totpKeyUri(accountName: string, secret: string): string {
   return authenticator.keyuri(accountName, TOTP_ISSUER, secret);
 }
 
-/** Prueft einen 6-stelligen TOTP-Code gegen das Secret. */
+/** Prüft einen 6-stelligen TOTP-Code gegen das Secret. */
 export function verifyTotp(token: string, secret: string): boolean {
   try {
     return authenticator.check(token.trim(), secret);
@@ -30,7 +30,7 @@ export function verifyTotp(token: string, secret: string): boolean {
   }
 }
 
-/** Erzeugt eine QR-Code-Data-URL (PNG) fuer die otpauth-URI. */
+/** Erzeugt eine QR-Code-Data-URL (PNG) für die otpauth-URI. */
 export function totpQrDataUrl(uri: string): Promise<string> {
   return QRCode.toDataURL(uri, { margin: 1, width: 220 });
 }

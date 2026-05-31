@@ -1,4 +1,4 @@
-// HinSchG — API: Postfach schliessen (Session-Cookie loeschen)
+// HinSchG — API: Postfach schließen (Session-Cookie löschen)
 
 import { NextResponse } from 'next/server';
 import { INBOX_COOKIE, inboxCookieOptions } from '@/lib/session';

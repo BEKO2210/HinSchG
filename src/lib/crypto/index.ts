@@ -1,13 +1,13 @@
-// HinSchG — Krypto-Modul (Stufe 1: "verschluesselt at rest + datenminimiert")
+// HinSchG — Krypto-Modul (Stufe 1: "verschlüsselt at rest + datenminimiert")
 //
-// Siehe ARCHITECTURE.md Abschnitt 5. Es werden ausschliesslich auditierte
+// Siehe ARCHITECTURE.md Abschnitt 5. Es werden ausschließlich auditierte
 // Primitive verwendet (kein Eigenbau):
-//   - XChaCha20-Poly1305 (@noble/ciphers) fuer die Inhaltsverschluesselung
-//   - Argon2id (@noble/hashes) fuer Passwort- und Token-Hashing
-//   - Base32/Base64 (@scure/base) fuer die Kodierung
+//   - XChaCha20-Poly1305 (@noble/ciphers) für die Inhaltsverschlüsselung
+//   - Argon2id (@noble/hashes) für Passwort- und Token-Hashing
+//   - Base32/Base64 (@scure/base) für die Kodierung
 //
 // WICHTIG: Receipt-Tokens werden NIE im Klartext gespeichert, nur als
-// Argon2id-Hash. Der MASTER_ENCRYPTION_KEY liegt ausschliesslich in der
+// Argon2id-Hash. Der MASTER_ENCRYPTION_KEY liegt ausschließlich in der
 // Umgebung, niemals in der Datenbank.
 
 import { randomBytes, timingSafeEqual } from 'node:crypto';
@@ -22,12 +22,12 @@ import { base32, base64 } from '@scure/base';
 export const CRYPTO_LEVEL = 1 as const;
 
 // --- Argon2id-Parameter ------------------------------------------------------
-// Orientiert an den OWASP-Empfehlungen fuer Argon2id (m=19 MiB, t=2, p=1).
+// Orientiert an den OWASP-Empfehlungen für Argon2id (m=19 MiB, t=2, p=1).
 const ARGON2_PARAMS = {
   m: 19456, // Speicher in KiB (~19 MiB)
   t: 2, // Iterationen
-  p: 1, // Parallelitaet
-  dkLen: 32, // Laenge des abgeleiteten Schluessels/Hashes
+  p: 1, // Parallelität
+  dkLen: 32, // Länge des abgeleiteten Schlüssels/Hashes
 } as const;
 
 const ARGON2_VERSION = 19; // 0x13
@@ -36,7 +36,7 @@ const ARGON2_VERSION = 19; // 0x13
 // 20 Zufallsbytes => 160 Bit Entropie (> 128 Bit gefordert). Base32-kodiert
 // ergibt das exakt 32 Zeichen, die in 8 gut lesbare Vierergruppen formatiert
 // werden (Format XXXX-XXXX-...). Mehr Gruppen als das Minimalbeispiel, damit
-// die Entropie-Anforderung sicher erfuellt ist.
+// die Entropie-Anforderung sicher erfüllt ist.
 const TOKEN_ENTROPY_BYTES = 20;
 const TOKEN_GROUP_SIZE = 4;
 
@@ -56,17 +56,17 @@ export function generateReceiptToken(): string {
 
 /**
  * Normalisiert einen vom Nutzer eingegebenen Token (entfernt Bindestriche/
- * Leerzeichen, Grossschreibung), damit Hashing/Verify unabhaengig von der
+ * Leerzeichen, Großschreibung), damit Hashing/Verify unabhängig von der
  * Formatierung der Eingabe sind.
  */
 export function normalizeReceiptToken(token: string): string {
   return token.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 }
 
-// --- Argon2id-Hashing (PHC-aehnliches Format) --------------------------------
+// --- Argon2id-Hashing (PHC-ähnliches Format) --------------------------------
 // Format: $argon2id$v=19$m=<m>,t=<t>,p=<p>$<saltB64>$<hashB64>
 // Salt und Parameter werden mitgespeichert, damit Verify ohne externe Werte
-// moeglich ist.
+// möglich ist.
 
 function argon2Hash(secret: string, salt: Uint8Array): Uint8Array {
   return argon2id(utf8ToBytes(secret), salt, {
@@ -125,7 +125,7 @@ export function hashPassword(password: string): string {
   return encodeArgon2(password);
 }
 
-/** Prueft ein Passwort gegen einen Argon2id-Hash (konstante Zeit). */
+/** Prüft ein Passwort gegen einen Argon2id-Hash (konstante Zeit). */
 export function verifyPassword(password: string, hash: string): boolean {
   return verifyArgon2(password, hash);
 }
@@ -135,12 +135,12 @@ export function hashToken(token: string): string {
   return encodeArgon2(normalizeReceiptToken(token));
 }
 
-/** Prueft einen Receipt-Token gegen seinen Argon2id-Hash (konstante Zeit). */
+/** Prüft einen Receipt-Token gegen seinen Argon2id-Hash (konstante Zeit). */
 export function verifyToken(token: string, hash: string): boolean {
   return verifyArgon2(normalizeReceiptToken(token), hash);
 }
 
-// --- Symmetrische Verschluesselung (XChaCha20-Poly1305) ----------------------
+// --- Symmetrische Verschlüsselung (XChaCha20-Poly1305) ----------------------
 
 const KEY_LENGTH = 32;
 const NONCE_LENGTH = 24;
@@ -149,8 +149,8 @@ let cachedKey: Uint8Array | null = null;
 
 /**
  * Liest den Master-Key aus der Umgebung (Base64, 32 Byte). Wirft, wenn er
- * fehlt oder ungueltig ist — wir wollen keinen stillen Betrieb ohne
- * Verschluesselung.
+ * fehlt oder ungültig ist — wir wollen keinen stillen Betrieb ohne
+ * Verschlüsselung.
  */
 function getMasterKey(): Uint8Array {
   if (cachedKey) {
@@ -164,7 +164,7 @@ function getMasterKey(): Uint8Array {
   try {
     key = base64.decode(raw);
   } catch {
-    throw new Error('MASTER_ENCRYPTION_KEY ist kein gueltiger Base64-Wert.');
+    throw new Error('MASTER_ENCRYPTION_KEY ist kein gültiger Base64-Wert.');
   }
   if (key.length !== KEY_LENGTH) {
     throw new Error(
@@ -175,22 +175,22 @@ function getMasterKey(): Uint8Array {
   return key;
 }
 
-/** Nur fuer Tests: setzt die gecachten Schluessel zurueck. */
+/** Nur für Tests: setzt die gecachten Schlüssel zurück. */
 export function resetMasterKeyCache(): void {
   cachedKey = null;
   cachedBlindIndexKey = null;
 }
 
-// --- Blind Index fuer Receipt-Tokens -----------------------------------------
-// Tokens werden weiterhin ausschliesslich als Argon2id-Hash verifiziert. Fuer
+// --- Blind Index für Receipt-Tokens -----------------------------------------
+// Tokens werden weiterhin ausschließlich als Argon2id-Hash verifiziert. Für
 // das schnelle Auffinden des richtigen Falls beim Login brauchen wir aber einen
-// deterministischen Schluessel — ein O(n)-Durchlauf mit Argon2id pro Fall waere
-// nicht praktikabel. Der Blind-Index ist ein geschluesselter HMAC ueber den
+// deterministischen Schlüssel — ein O(n)-Durchlauf mit Argon2id pro Fall wäre
+// nicht praktikabel. Der Blind-Index ist ein geschlüsselter HMAC über den
 // (160-Bit-)Token:
-//   - Der HMAC-Schluessel wird via HKDF aus dem MASTER_ENCRYPTION_KEY abgeleitet
+//   - Der HMAC-Schlüssel wird via HKDF aus dem MASTER_ENCRYPTION_KEY abgeleitet
 //     (Domain-Trennung), liegt also NICHT in der Datenbank.
 //   - Da der Token >= 160 Bit Entropie hat, bleibt er selbst bei Kenntnis von
-//     DB UND Schluessel praktisch nicht brute-forcebar.
+//     DB UND Schlüssel praktisch nicht brute-forcebar.
 
 let cachedBlindIndexKey: Uint8Array | null = null;
 
@@ -211,7 +211,7 @@ function getBlindIndexKey(): Uint8Array {
 /**
  * Deterministischer Blind-Index eines Receipt-Tokens (Hex-HMAC-SHA256).
  * Wird als indizierte Spalte gespeichert, um beim Login O(1) den passenden
- * Fall zu finden. Kein Ersatz fuer die Argon2id-Verifikation.
+ * Fall zu finden. Kein Ersatz für die Argon2id-Verifikation.
  */
 export function tokenBlindIndex(token: string): string {
   const mac = hmac(sha256, getBlindIndexKey(), utf8ToBytes(normalizeReceiptToken(token)));
@@ -219,8 +219,8 @@ export function tokenBlindIndex(token: string): string {
 }
 
 /**
- * Verschluesselt einen UTF-8-String mit XChaCha20-Poly1305.
- * Rueckgabe: Base64 von (24-Byte-Nonce || Ciphertext+Tag).
+ * Verschlüsselt einen UTF-8-String mit XChaCha20-Poly1305.
+ * Rückgabe: Base64 von (24-Byte-Nonce || Ciphertext+Tag).
  */
 export function encryptPayload(plaintext: string): string {
   const key = getMasterKey();
@@ -234,14 +234,14 @@ export function encryptPayload(plaintext: string): string {
 }
 
 /**
- * Entschluesselt einen mit {@link encryptPayload} erzeugten Wert.
- * Wirft bei manipuliertem/ungueltigem Ciphertext (Poly1305-Tag-Pruefung).
+ * Entschlüsselt einen mit {@link encryptPayload} erzeugten Wert.
+ * Wirft bei manipuliertem/ungültigem Ciphertext (Poly1305-Tag-Prüfung).
  */
 export function decryptPayload(encoded: string): string {
   const key = getMasterKey();
   const combined = base64.decode(encoded);
   if (combined.length <= NONCE_LENGTH) {
-    throw new Error('Ungueltiger Ciphertext: zu kurz.');
+    throw new Error('Ungültiger Ciphertext: zu kurz.');
   }
   const nonce = combined.slice(0, NONCE_LENGTH);
   const ciphertext = combined.slice(NONCE_LENGTH);

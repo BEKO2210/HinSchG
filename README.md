@@ -4,8 +4,8 @@
 Hinweisgeberschutzgesetz (HinSchG) und der EU-Whistleblower-Richtlinie
 2019/1937.
 
-> Status: **Phase 0 — Grundgeruest.** Meldestrecke, anonymes Postfach,
-> Bearbeiter-Login und Dashboard folgen in den naechsten Phasen
+> Status: **Phase 0 — Grundgerüst.** Meldestrecke, anonymes Postfach,
+> Bearbeiter-Login und Dashboard folgen in den nächsten Phasen
 > (siehe `ARCHITECTURE.md` und `HinSchG_BUILD_PROMPTS.md`).
 
 ---
@@ -13,21 +13,21 @@ Hinweisgeberschutzgesetz (HinSchG) und der EU-Whistleblower-Richtlinie
 ## Was ist HinSchG?
 
 HinSchG ist eine selbst-hostbare Plattform, mit der Organisationen die
-gesetzlich vorgeschriebene **interne Meldestelle** betreiben koennen.
-Hinweisgeber:innen koennen anonym Verstoesse melden und ueber ein
+gesetzlich vorgeschriebene **interne Meldestelle** betreiben können.
+Hinweisgeber:innen können anonym Verstöße melden und über ein
 token-basiertes Postfach mit der Meldestelle kommunizieren — ohne Account,
-ohne Pflicht zur Angabe ihrer Identitaet.
+ohne Pflicht zur Angabe ihrer Identität.
 
 Leitprinzipien (Details in [`ARCHITECTURE.md`](./ARCHITECTURE.md)):
 
 - **Datenminimierung als Default** — keine IP-, User-Agent- oder
-  Identitaetsspeicherung. Was nicht existiert, kann nicht geleakt werden.
+  Identitätsspeicherung. Was nicht existiert, kann nicht geleakt werden.
 - **Der Betreiber ist Teil des Bedrohungsmodells** — das Design erschwert,
   dass selbst ein DB-Admin Hinweisgeber de-anonymisiert.
-- **Zugang ueber Token statt Accounts** — ein hochentropischer Receipt-Code
-  ist der einzige Schluessel zum anonymen Postfach.
-- **Compliance im Kern** — Fristen (7 Tage Eingangsbestaetigung, 3 Monate
-  Rueckmeldung), Audit-Trail und revisionssichere Doku.
+- **Zugang über Token statt Accounts** — ein hochentropischer Receipt-Code
+  ist der einzige Schlüssel zum anonymen Postfach.
+- **Compliance im Kern** — Fristen (7 Tage Eingangsbestätigung, 3 Monate
+  Rückmeldung), Audit-Trail und revisionssichere Doku.
 
 ---
 
@@ -53,9 +53,9 @@ docker compose up --build
 ```
 
 Danach ist die App unter **http://localhost:3000** erreichbar, die
-PostgreSQL-Datenbank laeuft im Service `db` (Healthcheck inklusive).
+PostgreSQL-Datenbank läuft im Service `db` (Healthcheck inklusive).
 Zum Stoppen: `docker compose down` (Daten bleiben im Volume `postgres_data`
-erhalten; `docker compose down -v` loescht auch die Daten).
+erhalten; `docker compose down -v` löscht auch die Daten).
 
 ### Lokale Entwicklung (ohne Docker)
 
@@ -67,14 +67,14 @@ SEED_ADMIN_PASSWORD="$(openssl rand -base64 24)" npm run prisma:seed   # Demo-Me
 npm run dev                                      # http://localhost:3000
 ```
 
-Nuetzliche Skripte:
+Nützliche Skripte:
 
 | Befehl                    | Zweck                                       |
 | ------------------------- | ------------------------------------------- |
 | `npm run dev`             | Entwicklungsserver                          |
 | `npm run build`           | Produktions-Build                           |
 | `npm run lint`            | ESLint                                      |
-| `npm run typecheck`       | TypeScript-Pruefung (strict)                |
+| `npm run typecheck`       | TypeScript-Prüfung (strict)                 |
 | `npm test`                | Unit-Tests (Vitest)                         |
 | `npm run format`          | Prettier (schreibend)                       |
 | `npm run prisma:validate` | Prisma-Schema validieren                    |
@@ -85,22 +85,22 @@ Nuetzliche Skripte:
 
 ## Sicherheits-Disclaimer
 
-> **Aktuelle Sicherheitsstufe: Stufe 1 — „verschluesselt at rest + datenminimiert".**
+> **Aktuelle Sicherheitsstufe: Stufe 1 — „verschlüsselt at rest + datenminimiert".**
 >
 > Meldungsinhalte werden symmetrisch (XChaCha20-Poly1305) mit einem
-> Server-Master-Key verschluesselt gespeichert, und es werden bewusst keine
-> personenbezogenen Metadaten (IP, User-Agent, Pflicht-Identitaet) erhoben.
+> Server-Master-Key verschlüsselt gespeichert, und es werden bewusst keine
+> personenbezogenen Metadaten (IP, User-Agent, Pflicht-Identität) erhoben.
 >
-> **Dies ist NICHT Zero-Knowledge / Ende-zu-Ende-Verschluesselung.** Ein
+> **Dies ist NICHT Zero-Knowledge / Ende-zu-Ende-Verschlüsselung.** Ein
 > Betreiber mit Zugriff auf Datenbank **und** Master-Key kann technisch den
-> Klartext lesen. Die echte Ende-zu-Ende-Verschluesselung (Stufe 2) ist als
-> spaetere Phase geplant und wird erst nach einem **externen
+> Klartext lesen. Die echte Ende-zu-Ende-Verschlüsselung (Stufe 2) ist als
+> spätere Phase geplant und wird erst nach einem **externen
 > Security-Audit** als „Zero-Knowledge" kommuniziert.
 >
-> **Rechtlicher Hinweis:** Das System _unterstuetzt_ die Erfuellung der
+> **Rechtlicher Hinweis:** Das System _unterstuetzt_ die Erfüllung der
 > HinSchG-Pflichten, ersetzt aber keine Rechtsberatung. Compliance-Aussagen
 > sind vor Produktivbetrieb von einer qualifizierten Rechtsvertretung zu
-> pruefen.
+> prüfen.
 
 ---
 
@@ -110,5 +110,5 @@ Lizenziert unter der **GNU Affero General Public License v3.0 or later
 (AGPL-3.0-or-later)** — siehe [`LICENSE`](./LICENSE).
 
 Die AGPLv3 verlangt insbesondere, dass auch bei Bereitstellung der Software
-als Netzwerkdienst der vollstaendige Quellcode (inkl. Aenderungen) den
-Nutzer:innen zugaenglich gemacht wird.
+als Netzwerkdienst der vollständige Quellcode (inkl. Änderungen) den
+Nutzer:innen zugänglich gemacht wird.

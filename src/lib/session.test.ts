@@ -18,7 +18,7 @@ afterEach(() => {
 });
 
 describe('createInboxSession / verifyInboxSession', () => {
-  it('Roundtrip liefert die caseId zurueck', () => {
+  it('Roundtrip liefert die caseId zurück', () => {
     const { value } = createInboxSession('case_123');
     expect(verifyInboxSession(value)).toBe('case_123');
   });
@@ -44,7 +44,7 @@ describe('createInboxSession / verifyInboxSession', () => {
     expect(verifyInboxSession('keinpunkt')).toBeNull();
   });
 
-  it('laeuft nach Ablauf der TTL ab', () => {
+  it('läuft nach Ablauf der TTL ab', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
     const { value } = createInboxSession('case_123');
@@ -69,8 +69,8 @@ describe('Admin-Session', () => {
 
 describe('Admin-Pre-Auth', () => {
   it('Roundtrip mit Setup-Secret', () => {
-    const { value } = createAdminPreAuth({ h: 'h_1', setup: true, s: 'verschluesselt' });
-    expect(verifyAdminPreAuth(value)).toEqual({ h: 'h_1', setup: true, s: 'verschluesselt' });
+    const { value } = createAdminPreAuth({ h: 'h_1', setup: true, s: 'verschlüsselt' });
+    expect(verifyAdminPreAuth(value)).toEqual({ h: 'h_1', setup: true, s: 'verschlüsselt' });
   });
 
   it('akzeptiert keine Admin-Session als Pre-Auth (fehlendes setup-Flag)', () => {

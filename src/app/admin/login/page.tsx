@@ -26,7 +26,7 @@ export default function AdminLoginPage() {
         </Link>
         <h1 className="text-2xl font-semibold tracking-tight">Meldestelle — Anmeldung</h1>
         <p className="text-sm text-slate-600 dark:text-slate-300">
-          Zugang nur fuer Bearbeiter:innen. Zwei-Faktor-Authentifizierung ist verpflichtend.
+          Zugang nur für Bearbeiter:innen. Zwei-Faktor-Authentifizierung ist verpflichtend.
         </p>
       </header>
       <AdminLogin />

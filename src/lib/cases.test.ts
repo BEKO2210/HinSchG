@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { computeDeadlines, validateReportInput } from './cases';
 
 describe('validateReportInput', () => {
-  it('akzeptiert eine gueltige Meldung und normalisiert die Felder', () => {
+  it('akzeptiert eine gültige Meldung und normalisiert die Felder', () => {
     const result = validateReportInput({
       category: 'fraud',
       description: '  Es gibt einen Verdacht auf Untreue.  ',
@@ -37,7 +37,7 @@ describe('validateReportInput', () => {
     expect(validateReportInput({ description: 'x', category: 'nicht-existent' }).ok).toBe(false);
   });
 
-  it('lehnt ein ungueltiges Datumsformat ab', () => {
+  it('lehnt ein ungültiges Datumsformat ab', () => {
     expect(validateReportInput({ description: 'x', incidentDate: '15.01.2024' }).ok).toBe(false);
   });
 
@@ -50,7 +50,7 @@ describe('validateReportInput', () => {
     expect(validateReportInput({ description: 'a'.repeat(20001) }).ok).toBe(false);
   });
 
-  it('lehnt eine ungueltige Anfrage (kein Objekt) ab', () => {
+  it('lehnt eine ungültige Anfrage (kein Objekt) ab', () => {
     expect(validateReportInput(null).ok).toBe(false);
     expect(validateReportInput('text').ok).toBe(false);
   });
