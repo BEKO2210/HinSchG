@@ -2,15 +2,20 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { PLANS, type Plan, planLabel } from '@/lib/plans';
 
 export function OfficeRowActions({
   officeId,
   name,
   active,
+  plan,
+  billingEnabled,
 }: {
   officeId: string;
   name: string;
   active: boolean;
+  plan: Plan;
+  billingEnabled: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -68,6 +73,23 @@ export function OfficeRowActions({
         >
           {active ? 'Deaktivieren' : 'Aktivieren'}
         </button>
+        {billingEnabled && (
+          <label className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
+            Tarif
+            <select
+              defaultValue={plan}
+              disabled={busy}
+              onChange={(e) => patch({ plan: e.target.value })}
+              className="rounded-md border border-slate-300 bg-white px-1 py-0.5 text-xs dark:border-slate-700 dark:bg-slate-900"
+            >
+              {PLANS.map((p) => (
+                <option key={p} value={p}>
+                  {planLabel(p)}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
       {renaming && (
         <form onSubmit={handleRename} className="mt-1 flex items-center gap-2">

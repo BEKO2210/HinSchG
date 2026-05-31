@@ -139,6 +139,18 @@ Audit-Metadaten; Klartext-Privatkeys in der DB; fehlende Rollendurchsetzung.
   Meldungen an und sind öffentlich nicht erreichbar (`/m/[slug]/melden` → 404);
   bestehende Fälle/Postfächer bleiben erhalten. Aktionen werden als
   `OFFICE_CREATED`/`OFFICE_UPDATED` auditiert (ohne PII).
+- **Managed-Layer / Tarife (Phase 10a):** Jede Meldestelle hat einen Tarif
+  (`plan`: FREE/PRO/ENTERPRISE) und einen Abo-Status (`planStatus`:
+  ACTIVE/SUSPENDED). Die konkreten Limits stehen im Code (`src/lib/plans.ts`),
+  nicht in der DB. **Standardmäßig deaktiviert:** Limits greifen nur bei
+  `BILLING_ENABLED=true` — Self-Hoster ohne Konfiguration sind unbegrenzt
+  (rückwärtskompatibel). Aktuell erzwungen: maximale Anzahl Bearbeiter:innen je
+  Meldestelle bei der Anlage. Tarif/Status sind **SUPERADMIN-only** über
+  `PATCH /api/admin/offices/[id]` änderbar und werden als `OFFICE_UPDATED`
+  auditiert. **Keine Zahlungsdaten** im Datenmodell — eine Anbindung an einen
+  externen Zahlungsanbieter (Stripe o. Ä.) ist bewusst noch nicht erfolgt
+  (Phase 10b). `SUSPENDED` ist für diesen späteren Billing-Layer reserviert und
+  hat in 10a noch keine erzwingende Wirkung.
 - **Metadaten** sind nicht Ende-zu-Ende-verschlüsselt.
 - **Anhänge** (CaseAttachment) sind im Datenmodell vorgesehen, aber noch nicht
   implementiert.

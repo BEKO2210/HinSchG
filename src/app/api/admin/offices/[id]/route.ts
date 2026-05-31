@@ -4,10 +4,12 @@
 // nehmen keine neuen Meldungen mehr an und sind öffentlich nicht erreichbar.
 // Der Superadmin erhält keinen Zugriff auf Fall-Inhalte.
 
+import type { Plan, PlanStatus } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { adminApiGuard } from '@/lib/admin-auth';
 import { prisma } from '@/lib/db';
 import { isValidOfficeName } from '@/lib/office';
+import { isPlan, isPlanStatus } from '@/lib/plans';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -15,6 +17,8 @@ export const dynamic = 'force-dynamic';
 interface PatchBody {
   name?: unknown;
   active?: unknown;
+  plan?: unknown;
+  planStatus?: unknown;
 }
 
 export async function PATCH(
@@ -33,7 +37,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Ungültiges JSON.' }, { status: 400 });
   }
 
-  const data: { name?: string; active?: boolean } = {};
+  const data: { name?: string; active?: boolean; plan?: Plan; planStatus?: PlanStatus } = {};
   if (raw.name !== undefined) {
     const name = typeof raw.name === 'string' ? raw.name.trim() : '';
     if (!isValidOfficeName(name)) {
@@ -46,6 +50,18 @@ export async function PATCH(
       return NextResponse.json({ error: 'Ungültiger Aktiv-Status.' }, { status: 400 });
     }
     data.active = raw.active;
+  }
+  if (raw.plan !== undefined) {
+    if (!isPlan(raw.plan)) {
+      return NextResponse.json({ error: 'Unbekannter Tarif.' }, { status: 400 });
+    }
+    data.plan = raw.plan;
+  }
+  if (raw.planStatus !== undefined) {
+    if (!isPlanStatus(raw.planStatus)) {
+      return NextResponse.json({ error: 'Unbekannter Abo-Status.' }, { status: 400 });
+    }
+    data.planStatus = raw.planStatus;
   }
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: 'Keine Änderungen angegeben.' }, { status: 400 });
@@ -70,6 +86,8 @@ export async function PATCH(
         metadata: {
           ...(data.name !== undefined ? { renamed: true } : {}),
           ...(data.active !== undefined ? { active: data.active } : {}),
+          ...(data.plan !== undefined ? { plan: data.plan } : {}),
+          ...(data.planStatus !== undefined ? { planStatus: data.planStatus } : {}),
         },
       },
     });

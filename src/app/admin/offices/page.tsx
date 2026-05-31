@@ -4,6 +4,7 @@ import { CreateOfficeForm } from '@/components/CreateOfficeForm';
 import { OfficeRowActions } from '@/components/OfficeRowActions';
 import { requireAdminSession } from '@/lib/admin-auth';
 import { prisma } from '@/lib/db';
+import { isBillingEnabled, planLabel } from '@/lib/plans';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -25,9 +26,12 @@ export default async function OfficesPage() {
       name: true,
       slug: true,
       active: true,
+      plan: true,
+      planStatus: true,
       _count: { select: { handlers: true, cases: true } },
     },
   });
+  const billingOn = isBillingEnabled();
 
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-8 px-6 py-12">
@@ -71,9 +75,24 @@ export default async function OfficesPage() {
                     >
                       {office.active ? 'aktiv' : 'deaktiviert'}
                     </span>
+                    {billingOn && (
+                      <>
+                        {' · '}
+                        Tarif {planLabel(office.plan)}
+                        {office.planStatus === 'SUSPENDED' && (
+                          <span className="text-amber-600 dark:text-amber-400"> (gesperrt)</span>
+                        )}
+                      </>
+                    )}
                   </span>
                 </span>
-                <OfficeRowActions officeId={office.id} name={office.name} active={office.active} />
+                <OfficeRowActions
+                  officeId={office.id}
+                  name={office.name}
+                  active={office.active}
+                  plan={office.plan}
+                  billingEnabled={billingOn}
+                />
               </li>
             ))
           )}
