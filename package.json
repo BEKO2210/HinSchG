@@ -21,7 +21,8 @@
     "purge:cases": "tsx scripts/purge-cases.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -39,6 +40,7 @@
     "react-dom": "18.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.49.1",
     "@types/libsodium-wrappers-sumo": "0.7.8",
     "@types/node": "20.17.6",
     "@types/qrcode": "1.5.5",

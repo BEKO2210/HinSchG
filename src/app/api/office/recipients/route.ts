@@ -23,8 +23,16 @@ export async function GET(): Promise<NextResponse> {
     },
   });
 
+  // Solange die clientseitigen Leseansichten (Office/Postfach) noch nicht
+  // vollstaendig sind, wird der E2E-Submit per Flag freigeschaltet, damit keine
+  // Faelle entstehen, die niemand lesen kann. Default: aus.
+  const submitEnabled = process.env.E2E_SUBMIT_ENABLED === 'true';
+
   if (!office) {
-    return NextResponse.json({ ready: false, recovery: null, handlers: [] }, { status: 200 });
+    return NextResponse.json(
+      { ready: false, submitEnabled, recovery: null, handlers: [] },
+      { status: 200 },
+    );
   }
 
   const handlers = office.handlers.map((h) => ({ id: h.id, publicKey: h.publicKey as string }));
@@ -33,7 +41,7 @@ export async function GET(): Promise<NextResponse> {
   const ready = Boolean(office.recoveryPublicKey) && handlers.length > 0;
 
   return NextResponse.json(
-    { ready, recovery: office.recoveryPublicKey, handlers },
+    { ready, submitEnabled, recovery: office.recoveryPublicKey, handlers },
     { status: 200 },
   );
 }

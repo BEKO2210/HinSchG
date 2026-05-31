@@ -21,11 +21,71 @@ function formatDate(iso: string): string {
   }
 }
 
+interface Recipients {
+  ready: boolean;
+  submitEnabled: boolean;
+  recovery: string | null;
+  handlers: { id: string; publicKey: string }[];
+}
+
 export function ReportForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SubmitResult | null>(null);
+  const [e2eUsed, setE2eUsed] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Reicht eine Stufe-2-Meldung ein: Token + Verschlüsselung passieren im
+  // Browser; der Server erhält nur Ciphertext. Gibt das Ergebnis zurück.
+  async function submitEncrypted(
+    rec: Recipients,
+    content: { category: string; description: string; incidentDate: string; contact: string },
+  ): Promise<SubmitResult | { error: string }> {
+    const e2e = await import('@/lib/e2e');
+    const token = await e2e.generateReceiptToken();
+    const wb = await e2e.deriveWhistleblowerKeyPair(token);
+    const recipients: Record<string, string> = {
+      RECOVERY: rec.recovery as string,
+      WB: wb.publicKey,
+    };
+    for (const h of rec.handlers) recipients[h.id] = h.publicKey;
+
+    const plaintext = JSON.stringify({
+      description: content.description,
+      incidentDate: content.incidentDate || null,
+      contact: content.contact || null,
+    });
+    const ct = await e2e.encryptForRecipients(plaintext, recipients);
+    const [tokenLookup, tokenHash] = await Promise.all([
+      e2e.tokenLookupHash(token),
+      e2e.tokenVerifyHash(token),
+    ]);
+    const response = await fetch('/api/cases', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        encryptionVersion: 2,
+        category: content.category,
+        tokenLookup,
+        tokenHash,
+        wbPublicKey: wb.publicKey,
+        payload: { nonce: ct.nonce, content: ct.content },
+        wraps: ct.wraps,
+      }),
+    });
+    const body = (await response.json().catch(() => ({}))) as Partial<SubmitResult> & {
+      error?: string;
+    };
+    if (!response.ok) {
+      return { error: body.error ?? 'Die Meldung konnte nicht übermittelt werden.' };
+    }
+    // Der Token wurde im Browser erzeugt und wird hier einmalig angezeigt.
+    return {
+      receiptToken: token,
+      deadlineAck: body.deadlineAck ?? '',
+      deadlineFeedback: body.deadlineFeedback ?? '',
+    };
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -34,18 +94,40 @@ export function ReportForm() {
 
     const form = event.currentTarget;
     const data = new FormData(form);
-    const payload = {
+    const content = {
       category: String(data.get('category') ?? ''),
       description: String(data.get('description') ?? ''),
       incidentDate: String(data.get('incidentDate') ?? ''),
       contact: String(data.get('contact') ?? ''),
     };
+    if (!content.description.trim()) {
+      setError('Eine Beschreibung des Sachverhalts ist erforderlich.');
+      setSubmitting(false);
+      return;
+    }
 
     try {
+      // Ist Ende-zu-Ende-Verschlüsselung eingerichtet und freigeschaltet?
+      const rec = (await fetch('/api/office/recipients')
+        .then((r) => r.json())
+        .catch(() => null)) as Recipients | null;
+
+      if (rec && rec.ready && rec.submitEnabled) {
+        const outcome = await submitEncrypted(rec, content);
+        if ('error' in outcome) {
+          setError(outcome.error);
+          return;
+        }
+        setE2eUsed(true);
+        setResult(outcome);
+        return;
+      }
+
+      // Stufe 1: serverseitige Verschlüsselung (Fallback).
       const response = await fetch('/api/cases', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(content),
       });
       const body = (await response.json().catch(() => ({}))) as Partial<SubmitResult> & {
         error?: string;
@@ -81,6 +163,13 @@ export function ReportForm() {
     return (
       <section className="flex flex-col gap-5" aria-live="polite">
         <h2 className="text-xl font-semibold">Ihre Meldung wurde übermittelt</h2>
+
+        {e2eUsed && (
+          <p className="rounded-md border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-800 dark:border-green-800 dark:bg-green-950/30 dark:text-green-200">
+            Ende-zu-Ende-verschlüsselt: Der Inhalt wurde in Ihrem Browser verschlüsselt; der Server
+            hat ihn nie im Klartext gesehen.
+          </p>
+        )}
 
         <div className="rounded-md border border-amber-400 bg-amber-50 p-4 text-amber-900 dark:border-amber-500 dark:bg-amber-950/40 dark:text-amber-100">
           <p className="font-medium">

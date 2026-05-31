@@ -1,10 +1,8 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 export function InboxLogin() {
-  const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,15 +14,28 @@ export function InboxLogin() {
     const data = new FormData(event.currentTarget);
     const token = String(data.get('token') ?? '');
 
-    try {
-      const response = await fetch('/api/inbox/auth', {
+    async function authenticate(payload: Record<string, string>) {
+      return fetch('/api/inbox/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify(payload),
       });
+    }
+
+    try {
+      // Stufe 2 zuerst: Lookup-Hash im Browser berechnen, Token NICHT senden.
+      const { tokenLookupHash } = await import('@/lib/e2e');
+      const tokenLookup = await tokenLookupHash(token);
+      let response = await authenticate({ tokenLookup });
+      // Nicht gefunden? Dann Stufe-1-Fall (Token serverseitig prüfen lassen).
+      if (response.status === 401) {
+        response = await authenticate({ token });
+      }
+
       if (response.ok) {
-        // Session-Cookie ist gesetzt; Server-Ansicht neu laden.
-        router.refresh();
+        // Session-Cookie ist gesetzt; harte Neuladung, damit die Server-Ansicht
+        // die neue Session zuverlässig übernimmt.
+        window.location.assign('/postfach');
         return;
       }
       const body = (await response.json().catch(() => ({}))) as { error?: string };
