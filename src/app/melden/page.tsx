@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ReportForm } from '@/components/ReportForm';
+import { SiteHeader } from '@/components/SiteHeader';
 
 export const metadata: Metadata = {
   title: 'Meldung einreichen — HinSchG',
@@ -11,6 +12,7 @@ export default function MeldenPage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 px-6 py-12">
       <header className="flex flex-col gap-3">
+        <SiteHeader />
         <Link
           href="/"
           className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"

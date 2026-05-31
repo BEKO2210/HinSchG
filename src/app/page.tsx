@@ -1,10 +1,19 @@
 import Link from 'next/link';
 
+/* eslint-disable-next-line @next/next/no-img-element */
 export default function HomePage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-10 px-6 py-16">
-      <header className="flex flex-col gap-4">
-        <h1 className="text-4xl font-semibold tracking-tight">HinSchG</h1>
+      <header className="flex flex-col items-center gap-5 text-center">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/logo.png"
+          alt="HinSchG — Hinweisgeber- & Compliance-Plattform"
+          width={440}
+          height={145}
+          className="h-auto w-[min(440px,85%)]"
+        />
+        <h1 className="sr-only">HinSchG — Hinweisgeber- &amp; Compliance-Plattform</h1>
         <p className="text-lg text-slate-600 dark:text-slate-300">
           Interne Meldestelle nach dem Hinweisgeberschutzgesetz (HinSchG) und der
           EU-Whistleblower-Richtlinie 2019/1937. Melden Sie Verstöße vertraulich — ohne Konto und
