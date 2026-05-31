@@ -89,12 +89,20 @@ export default async function AdminPage() {
             Audit
           </Link>
           {session.r === 'ADMIN' && (
-            <Link
-              href="/admin/handlers"
-              className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900"
-            >
-              Bearbeiter
-            </Link>
+            <>
+              <Link
+                href="/admin/handlers"
+                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900"
+              >
+                Bearbeiter
+              </Link>
+              <Link
+                href="/admin/e2e"
+                className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900"
+              >
+                E2E
+              </Link>
+            </>
           )}
           <AdminLogoutButton />
         </div>

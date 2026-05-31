@@ -13,6 +13,7 @@ export const AUDIT_ACTIONS = [
   '2FA_FAILED',
   'HANDLER_CREATED',
   'CASE_PURGED',
+  'E2E_RECOVERY_SET',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
