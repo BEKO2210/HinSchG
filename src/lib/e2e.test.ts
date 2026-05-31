@@ -6,10 +6,28 @@ import {
   encryptForRecipients,
   encryptPrivateKey,
   generateKeyPair,
+  generateReceiptToken,
   getSodium,
   sealOpen,
   sealTo,
+  tokenLookupHash,
+  tokenVerifyHash,
 } from './e2e';
+
+describe('generateReceiptToken / Token-Hashes (Browser-Helfer)', () => {
+  it('erzeugt das erwartete Token-Format (8 x 4 Base32)', async () => {
+    expect(await generateReceiptToken()).toMatch(/^([A-Z2-7]{4}-){7}[A-Z2-7]{4}$/);
+  });
+
+  it('Lookup- und Verify-Hash sind deterministisch, formatunabhängig und verschieden', async () => {
+    const token = 'ABCD-EFGH-IJKL-MNOP-QRST-UVWX-YZ23-4567';
+    const lookup = await tokenLookupHash(token);
+    const verify = await tokenVerifyHash(token);
+    expect(lookup).toBe(await tokenLookupHash(token.toLowerCase().replace(/-/g, '')));
+    expect(lookup).not.toBe(verify);
+    expect(lookup).not.toContain(token.replace(/-/g, ''));
+  });
+});
 
 describe('generateKeyPair', () => {
   it('erzeugt unterschiedliche X25519-Keypaare (32-Byte Public Key)', async () => {

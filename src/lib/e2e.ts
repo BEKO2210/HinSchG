@@ -16,6 +16,7 @@
 // "Zero-Knowledge" zu kommunizieren.
 
 import _sodium from 'libsodium-wrappers-sumo';
+import { base32 } from '@scure/base';
 
 let ready: Promise<typeof _sodium> | null = null;
 
@@ -181,4 +182,40 @@ export async function deriveWhistleblowerKeyPair(token: string): Promise<KeyPair
   );
   const kp = s.crypto_box_seed_keypair(seed);
   return { publicKey: b64(s, kp.publicKey), privateKey: b64(s, kp.privateKey) };
+}
+
+// --- Browser-sichere Token-Helfer (Stufe 2) ----------------------------------
+// Der Receipt-Token wird im Browser erzeugt; der Server sieht ihn nie. Lookup-
+// und Verify-Hash werden ebenfalls clientseitig berechnet und an den Server
+// uebergeben (erfuellen @unique/not-null, ohne den Token preiszugeben).
+
+const TOKEN_GROUP_SIZE = 4;
+
+/** Erzeugt einen Receipt-Token (160 Bit) im Format XXXX-…-XXXX (Base32). */
+export async function generateReceiptToken(): Promise<string> {
+  const s = await getSodium();
+  const encoded = base32.encode(s.randombytes_buf(20)); // 32 Zeichen
+  const groups: string[] = [];
+  for (let i = 0; i < encoded.length; i += TOKEN_GROUP_SIZE) {
+    groups.push(encoded.slice(i, i + TOKEN_GROUP_SIZE));
+  }
+  return groups.join('-');
+}
+
+async function tokenHashWith(token: string, context: string): Promise<string> {
+  const s = await getSodium();
+  return b64(
+    s,
+    s.crypto_generichash(32, s.from_string(normalizeToken(token)), s.from_string(context)),
+  );
+}
+
+/** Deterministischer Lookup-Hash des Tokens (zum Auffinden des Falls). */
+export function tokenLookupHash(token: string): Promise<string> {
+  return tokenHashWith(token, 'hinschg/token-lookup/v2');
+}
+
+/** Zweiter, vom Lookup verschiedener Hash (erfuellt die @unique-Spalte tokenHash). */
+export function tokenVerifyHash(token: string): Promise<string> {
+  return tokenHashWith(token, 'hinschg/token-verify/v2');
 }

@@ -36,8 +36,9 @@ export function middleware(request: NextRequest): NextResponse {
     "img-src 'self' data:",
     "object-src 'none'",
     // 'strict-dynamic' erlaubt nonce-signierten Skripten das Nachladen weiterer
-    // Chunks; in der Entwicklung braucht Next zusätzlich 'unsafe-eval'.
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ''}`,
+    // Chunks. 'wasm-unsafe-eval' wird für die clientseitige Krypto (libsodium
+    // WebAssembly) benötigt; in der Entwicklung kommt 'unsafe-eval' für Next-HMR dazu.
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' 'wasm-unsafe-eval'${isDev ? " 'unsafe-eval'" : ''}`,
     "style-src 'self' 'unsafe-inline'",
     "connect-src 'self'",
     ...(isOnion ? [] : ['upgrade-insecure-requests']),

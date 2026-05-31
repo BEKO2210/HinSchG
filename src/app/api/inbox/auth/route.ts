@@ -50,29 +50,45 @@ export async function POST(request: Request): Promise<NextResponse> {
   } catch {
     return NextResponse.json({ error: 'Ungültiges JSON.' }, { status: 400 });
   }
-  const token =
-    typeof raw === 'object' &&
-    raw !== null &&
-    typeof (raw as Record<string, unknown>).token === 'string'
-      ? ((raw as Record<string, unknown>).token as string)
-      : '';
-  if (!token.trim()) {
-    return NextResponse.json({ error: 'Bitte geben Sie Ihren Zugangscode ein.' }, { status: 400 });
+  const body = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
+  const token = typeof body.token === 'string' ? body.token : '';
+  // Stufe 2: Der Client berechnet den Lookup-Hash selbst; der Token wird nie
+  // an den Server gesendet. Der Besitz des Tokens wird implizit durch die
+  // anschließende clientseitige Entschlüsselung nachgewiesen.
+  const tokenLookup = typeof body.tokenLookup === 'string' ? body.tokenLookup.trim() : '';
+
+  let caseId: string | null = null;
+
+  if (tokenLookup) {
+    const found = await prisma.case.findFirst({
+      where: { tokenLookup, encryptionVersion: 2 },
+      select: { id: true },
+    });
+    caseId = found?.id ?? null;
+  } else {
+    if (!token.trim()) {
+      return NextResponse.json(
+        { error: 'Bitte geben Sie Ihren Zugangscode ein.' },
+        { status: 400 },
+      );
+    }
+    // Stufe 1: Blind-Index-Lookup, danach maßgebliche Argon2id-Verifikation.
+    const found = await prisma.case.findUnique({
+      where: { tokenLookup: tokenBlindIndex(token) },
+      select: { id: true, tokenHash: true, encryptionVersion: true },
+    });
+    if (found && found.encryptionVersion === 1 && verifyToken(token, found.tokenHash)) {
+      caseId = found.id;
+    }
   }
 
-  // Blind-Index-Lookup, danach maszgebliche Argon2id-Verifikation.
-  const found = await prisma.case.findUnique({
-    where: { tokenLookup: tokenBlindIndex(token) },
-    select: { id: true, tokenHash: true },
-  });
-
-  if (!found || !verifyToken(token, found.tokenHash)) {
+  if (!caseId) {
     recordAuthFailure(key);
     return NextResponse.json({ error: 'Ungültiger Zugangscode.' }, { status: 401 });
   }
 
   recordAuthSuccess(key);
-  const session = createInboxSession(found.id);
+  const session = createInboxSession(caseId);
   const response = NextResponse.json({ ok: true }, { status: 200 });
   response.cookies.set(INBOX_COOKIE, session.value, inboxCookieOptions(session.maxAgeSeconds));
   return response;

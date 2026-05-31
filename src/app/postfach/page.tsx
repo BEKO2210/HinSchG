@@ -95,6 +95,7 @@ export default async function PostfachPage() {
     select: {
       status: true,
       category: true,
+      encryptionVersion: true,
       encryptedPayload: true,
       acknowledgedAt: true,
       deadlineAck: true,
@@ -118,7 +119,10 @@ export default async function PostfachPage() {
     );
   }
 
-  const report = parseReport(found.encryptedPayload);
+  const isE2e = found.encryptionVersion === 2;
+  const report = isE2e
+    ? { description: '', incidentDate: null, contact: null }
+    : parseReport(found.encryptedPayload);
 
   return (
     <Shell>
@@ -157,56 +161,71 @@ export default async function PostfachPage() {
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">Verlauf</h2>
 
-        <article className="rounded-md border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
-          <div className="mb-1 flex justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
-            <span className="font-medium">Ihre Meldung</span>
-            <span>{formatDateTime(found.createdAt)}</span>
+        {isE2e ? (
+          <div className="rounded-md border border-brand/40 bg-brand/5 p-4 text-sm">
+            <p className="font-medium">Ende-zu-Ende-verschlüsselt</p>
+            <p className="mt-1 text-slate-600 dark:text-slate-300">
+              Ihre Meldung ist Ende-zu-Ende-verschlüsselt. Das Anzeigen und Beantworten im Browser
+              (mit Ihrem Zugangscode) wird in Kürze ergänzt. Der oben gezeigte Status bleibt
+              aktuell.
+            </p>
           </div>
-          <p className="whitespace-pre-wrap break-words">{report.description}</p>
-          {(report.incidentDate || report.contact) && (
-            <dl className="mt-3 grid gap-1 border-t border-slate-200 pt-2 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
-              {report.incidentDate && (
-                <div className="flex gap-2">
-                  <dt>Vorfallszeitpunkt:</dt>
-                  <dd>{report.incidentDate}</dd>
-                </div>
-              )}
-              {report.contact && (
-                <div className="flex gap-2">
-                  <dt>Ihre Kontaktangabe:</dt>
-                  <dd className="break-all">{report.contact}</dd>
-                </div>
-              )}
-            </dl>
-          )}
-        </article>
-
-        {found.messages.map((message) => {
-          const fromOffice = message.direction === 'FROM_OFFICE';
-          return (
-            <article
-              key={message.id}
-              className={`rounded-md border p-4 ${
-                fromOffice
-                  ? 'border-brand/30 bg-brand/5'
-                  : 'border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900'
-              }`}
-            >
+        ) : (
+          <>
+            <article className="rounded-md border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
               <div className="mb-1 flex justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
-                <span className="font-medium">{fromOffice ? 'Meldestelle' : 'Sie'}</span>
-                <span>{formatDateTime(message.createdAt)}</span>
+                <span className="font-medium">Ihre Meldung</span>
+                <span>{formatDateTime(found.createdAt)}</span>
               </div>
-              <p className="whitespace-pre-wrap break-words">
-                {safeDecrypt(message.encryptedBody)}
-              </p>
+              <p className="whitespace-pre-wrap break-words">{report.description}</p>
+              {(report.incidentDate || report.contact) && (
+                <dl className="mt-3 grid gap-1 border-t border-slate-200 pt-2 text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                  {report.incidentDate && (
+                    <div className="flex gap-2">
+                      <dt>Vorfallszeitpunkt:</dt>
+                      <dd>{report.incidentDate}</dd>
+                    </div>
+                  )}
+                  {report.contact && (
+                    <div className="flex gap-2">
+                      <dt>Ihre Kontaktangabe:</dt>
+                      <dd className="break-all">{report.contact}</dd>
+                    </div>
+                  )}
+                </dl>
+              )}
             </article>
-          );
-        })}
+
+            {found.messages.map((message) => {
+              const fromOffice = message.direction === 'FROM_OFFICE';
+              return (
+                <article
+                  key={message.id}
+                  className={`rounded-md border p-4 ${
+                    fromOffice
+                      ? 'border-brand/30 bg-brand/5'
+                      : 'border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900'
+                  }`}
+                >
+                  <div className="mb-1 flex justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
+                    <span className="font-medium">{fromOffice ? 'Meldestelle' : 'Sie'}</span>
+                    <span>{formatDateTime(message.createdAt)}</span>
+                  </div>
+                  <p className="whitespace-pre-wrap break-words">
+                    {safeDecrypt(message.encryptedBody)}
+                  </p>
+                </article>
+              );
+            })}
+          </>
+        )}
       </section>
 
-      <section className="border-t border-slate-200 pt-6 dark:border-slate-800">
-        <InboxReplyForm />
-      </section>
+      {!isE2e && (
+        <section className="border-t border-slate-200 pt-6 dark:border-slate-800">
+          <InboxReplyForm />
+        </section>
+      )}
     </Shell>
   );
 }
