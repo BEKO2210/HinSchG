@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   authThrottleStatus,
   clientKeyFromHeaders,
@@ -10,6 +10,10 @@ import {
 
 beforeEach(() => {
   resetRateLimitState();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('rateLimit', () => {
@@ -54,6 +58,14 @@ describe('clientKeyFromHeaders', () => {
   it('liefert "unknown" ohne IP-Header', () => {
     expect(clientKeyFromHeaders(new Headers())).toBe('unknown');
   });
+
+  it('fällt bei leerem x-forwarded-for auf x-real-ip / unknown zurück', () => {
+    // Leerer erster Eintrag -> nicht als IP akzeptiert.
+    expect(clientKeyFromHeaders(new Headers({ 'x-forwarded-for': '   ' }))).toBe('unknown');
+    expect(
+      clientKeyFromHeaders(new Headers({ 'x-forwarded-for': '  ', 'x-real-ip': '198.51.100.9' })),
+    ).toBe('198.51.100.9');
+  });
 });
 
 describe('Auth-Backoff', () => {
@@ -78,5 +90,48 @@ describe('Auth-Backoff', () => {
     expect(authThrottleStatus('y').blocked).toBe(true);
     recordAuthSuccess('y');
     expect(authThrottleStatus('y').blocked).toBe(false);
+  });
+
+  it('deckelt die Backoff-Dauer bei vielen Fehlversuchen (Brute-Force)', () => {
+    // Simuliert einen Brute-Force-Angriff: viele Fehlversuche in Folge.
+    for (let i = 0; i < 20; i++) {
+      recordAuthFailure('bruteforce');
+    }
+    const status = authThrottleStatus('bruteforce');
+    expect(status.blocked).toBe(true);
+    // Deckel ist 5 Minuten (BACKOFF_MAX_MS) -> retryAfterSec <= 300.
+    expect(status.retryAfterSec).toBeLessThanOrEqual(300);
+    expect(status.retryAfterSec).toBeGreaterThan(60);
+  });
+});
+
+describe('rateLimit — Erschöpfung & Fenster-Reset (sweep)', () => {
+  it('blockt nach Erschöpfung und setzt nach Fensterablauf zurück', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+    const key = 'window';
+    expect(rateLimit(key, 2, 1_000).ok).toBe(true);
+    expect(rateLimit(key, 2, 1_000).ok).toBe(true);
+    const blocked = rateLimit(key, 2, 1_000);
+    expect(blocked.ok).toBe(false);
+    expect(blocked.retryAfterSec).toBeGreaterThan(0);
+
+    // Nach Ablauf des Fensters + sweep-Intervall (>60s) ist wieder frei.
+    vi.advanceTimersByTime(61_000);
+    expect(rateLimit(key, 2, 1_000).ok).toBe(true);
+    vi.useRealTimers();
+  });
+
+  it('sweep räumt abgelaufene Auth-Backoff-Einträge auf', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-02-01T00:00:00Z'));
+    recordAuthFailure('old');
+    expect(authThrottleStatus('old').blocked).toBe(true);
+    // Weit nach Ablauf der Sperre + 10-min-Verfall -> sweep entfernt den Eintrag.
+    vi.advanceTimersByTime(20 * 60_000);
+    // Ein rateLimit-Aufruf triggert sweep; danach ist der alte Eintrag weg.
+    rateLimit('trigger-sweep', 5, 1_000);
+    expect(authThrottleStatus('old').blocked).toBe(false);
+    vi.useRealTimers();
   });
 });

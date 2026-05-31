@@ -147,7 +147,10 @@ describe('Anhang-Verschluesselung (Multi-Recipient, binaer)', () => {
     const a = await generateKeyPair();
     const wb = await generateKeyPair();
     const bytes = new Uint8Array([0, 1, 2, 3, 250, 255, 128]);
-    const enc = await encryptAttachment(bytes, 'geheim.pdf', { h_a: a.publicKey, WB: wb.publicKey });
+    const enc = await encryptAttachment(bytes, 'geheim.pdf', {
+      h_a: a.publicKey,
+      WB: wb.publicKey,
+    });
     const out = await decryptAttachment(enc, enc.wraps.h_a!, a.publicKey, a.privateKey);
     expect(Array.from(out.bytes)).toEqual(Array.from(bytes));
     expect(out.filename).toBe('geheim.pdf');
@@ -159,7 +162,12 @@ describe('Anhang-Verschluesselung (Multi-Recipient, binaer)', () => {
   it('ein fremdes Keypaar kann den Anhang NICHT entschluesseln', async () => {
     const a = await generateKeyPair();
     const fremd = await generateKeyPair();
-    const enc = await encryptAttachment(new Uint8Array([1, 2, 3]), 'x.pdf', { h_a: a.publicKey, WB: a.publicKey });
-    await expect(decryptAttachment(enc, enc.wraps.h_a!, fremd.publicKey, fremd.privateKey)).rejects.toThrow();
+    const enc = await encryptAttachment(new Uint8Array([1, 2, 3]), 'x.pdf', {
+      h_a: a.publicKey,
+      WB: a.publicKey,
+    });
+    await expect(
+      decryptAttachment(enc, enc.wraps.h_a!, fremd.publicKey, fremd.privateKey),
+    ).rejects.toThrow();
   });
 });

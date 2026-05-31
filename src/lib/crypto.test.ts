@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import {
   decryptPayload,
   encryptPayload,
@@ -56,6 +56,16 @@ describe('hashToken / verifyToken', () => {
     const hash = hashToken(token);
     expect(hash).not.toContain(normalizeReceiptToken(token));
     expect(hash.startsWith('$argon2id$')).toBe(true);
+  });
+
+  it('lehnt strukturell ungültige Hashes ab (kein Wurf)', () => {
+    // Falsche Teil-Anzahl / falscher Algorithmus-Marker.
+    expect(verifyToken('x', 'nur-müll')).toBe(false);
+    expect(verifyToken('x', '$argon2d$v=19$m=1,t=1,p=1$c2FsdA$aGFzaA')).toBe(false);
+    // Ungültiger Parameter-Block (Regex matcht nicht).
+    expect(verifyToken('x', '$argon2id$v=19$m=x,t=y,p=z$c2FsdA$aGFzaA')).toBe(false);
+    // Ungültiges Base64 in Salt/Hash -> base64.decode wirft -> false.
+    expect(verifyToken('x', '$argon2id$v=19$m=1,t=1,p=1$!!§§$!!§§')).toBe(false);
   });
 });
 
@@ -117,5 +127,37 @@ describe('encryptPayload / decryptPayload', () => {
     bytes[last] = (bytes[last] ?? 0) ^ 0xff; // letztes Byte (Teil des Auth-Tags) kippen
     const tampered = bytes.toString('base64');
     expect(() => decryptPayload(tampered)).toThrow();
+  });
+
+  it('wirft bei zu kurzem Ciphertext (kürzer als die Nonce)', () => {
+    // 4 Byte base64 -> deutlich kürzer als die 24-Byte-Nonce.
+    expect(() => decryptPayload(Buffer.from([1, 2, 3, 4]).toString('base64'))).toThrow('zu kurz');
+  });
+});
+
+describe('getMasterKey — Fehlkonfiguration', () => {
+  const validKey = process.env.MASTER_ENCRYPTION_KEY;
+  afterEach(() => {
+    // Gültigen Key + Cache für die übrigen Tests wiederherstellen.
+    process.env.MASTER_ENCRYPTION_KEY = validKey;
+    resetMasterKeyCache();
+  });
+
+  it('wirft, wenn der Master-Key fehlt', () => {
+    delete process.env.MASTER_ENCRYPTION_KEY;
+    resetMasterKeyCache();
+    expect(() => encryptPayload('x')).toThrow('nicht gesetzt');
+  });
+
+  it('wirft bei falscher Schlüssel-Länge', () => {
+    process.env.MASTER_ENCRYPTION_KEY = Buffer.from(randomBytes(16)).toString('base64');
+    resetMasterKeyCache();
+    expect(() => encryptPayload('x')).toThrow('32 Byte');
+  });
+
+  it('wirft bei ungültigem Base64', () => {
+    process.env.MASTER_ENCRYPTION_KEY = '!!! kein base64 €€€';
+    resetMasterKeyCache();
+    expect(() => encryptPayload('x')).toThrow('Base64');
   });
 });

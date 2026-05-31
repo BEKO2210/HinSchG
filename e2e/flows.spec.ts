@@ -320,3 +320,61 @@ test('ADMIN setzt ein Bearbeiter-Schlüsselpaar zurück (Status wird „ausstehe
   // Nach dem Reset (router.refresh) ist der Schlüssel ausstehend.
   await expect(row.getByText('Schlüssel ausstehend')).toBeVisible();
 });
+
+test('Sicherheit: falscher Token wird abgelehnt (401) und Brute-Force greift (429)', async ({
+  request,
+}) => {
+  // Falscher/zufälliger Token -> 401.
+  const wrong = await request.post('/api/inbox/auth', {
+    data: { token: 'AAAA-BBBB-CCCC-DDDD-EEEE-FFFF-GGGG-HHHH' },
+  });
+  expect(wrong.status()).toBe(401);
+
+  // Wiederholte Fehlversuche -> exponentielles Backoff/Rate-Limit (429).
+  let got429 = false;
+  for (let i = 0; i < 8; i++) {
+    const res = await request.post('/api/inbox/auth', {
+      data: { token: `WRONG-${i}-AAAA-BBBB-CCCC-DDDD-EEEE-FFFF` },
+    });
+    if (res.status() === 429) {
+      got429 = true;
+      break;
+    }
+  }
+  expect(got429).toBe(true);
+});
+
+test('Sicherheit: Auth-Bypass-Versuche auf Admin-APIs werden mit 401 abgewiesen', async ({
+  request,
+}) => {
+  // Ohne gültige Admin-Session -> 401 (kein Zugriff auf Fall-/Office-Operationen).
+  const noAuth = await request.post('/api/admin/offices', {
+    data: { name: 'Hacker-Meldestelle' },
+  });
+  expect(noAuth.status()).toBe(401);
+
+  // Manipuliertes Session-Cookie -> ebenfalls 401 (HMAC-Signatur schlägt fehl).
+  const forged = await request.post('/api/admin/offices', {
+    headers: { Cookie: 'hinschg_admin=geforgt.invalid-signature' },
+    data: { name: 'X' },
+  });
+  expect(forged.status()).toBe(401);
+});
+
+test('Sicherheit: Audit-Log ist append-only (DB-Trigger blockt UPDATE/DELETE)', async () => {
+  // Es existieren durch die vorherigen Tests bereits Audit-Einträge.
+  const entry = await prisma.auditLog.findFirst({ select: { id: true } });
+  expect(entry).not.toBeNull();
+
+  // UPDATE muss vom DB-Trigger abgelehnt werden.
+  await expect(
+    prisma.auditLog.update({ where: { id: entry!.id }, data: { action: 'MANIPULIERT' } }),
+  ).rejects.toThrow();
+
+  // DELETE muss ebenfalls abgelehnt werden.
+  await expect(prisma.auditLog.delete({ where: { id: entry!.id } })).rejects.toThrow();
+
+  // Der Eintrag ist unverändert vorhanden.
+  const still = await prisma.auditLog.findUnique({ where: { id: entry!.id } });
+  expect(still).not.toBeNull();
+});

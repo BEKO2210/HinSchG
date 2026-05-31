@@ -107,6 +107,13 @@ describe('Stripe-Preis-Zuordnung', () => {
     expect(stripePriceIdFor('FREE')).toBeNull();
   });
 
+  it('liefert null, wenn die Preis-Variablen nicht gesetzt sind', () => {
+    delete process.env.STRIPE_PRICE_PRO;
+    delete process.env.STRIPE_PRICE_ENTERPRISE;
+    expect(stripePriceIdFor('PRO')).toBeNull();
+    expect(stripePriceIdFor('ENTERPRISE')).toBeNull();
+  });
+
   it('planForStripePriceId macht die Zuordnung rückwärts', () => {
     process.env.STRIPE_PRICE_PRO = 'price_pro_1';
     process.env.STRIPE_PRICE_ENTERPRISE = 'price_ent_1';

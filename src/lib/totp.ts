@@ -25,6 +25,8 @@ export function totpKeyUri(accountName: string, secret: string): string {
 export function verifyTotp(token: string, secret: string): boolean {
   try {
     return authenticator.check(token.trim(), secret);
+    // Defensive Sicherung: otplib.check wirft bei String-Eingaben nicht.
+    /* v8 ignore next 3 */
   } catch {
     return false;
   }
