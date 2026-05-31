@@ -1,0 +1,16 @@
+# HinSchG — Caddy Reverse Proxy mit automatischem HTTPS (Let's Encrypt)
+#
+# DOMAIN und ACME_EMAIL werden aus der Umgebung (.env) gesetzt. Caddy holt und
+# erneuert die TLS-Zertifikate automatisch.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy app:3000
+
+	# Server-Kennung entfernen (Sicherheits-Header setzt die App selbst).
+	header -Server
+}
