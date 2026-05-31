@@ -145,3 +145,29 @@ test('Hinweisgeber liest die Office-Antwort im Browser und antwortet verschlüss
 
   await context.close();
 });
+
+test('ADMIN setzt ein Bearbeiter-Schlüsselpaar zurück (Status wird „ausstehend")', async ({
+  page,
+}) => {
+  // Login (TOTP aus gespeichertem Secret).
+  await page.goto('/admin/login');
+  await page.locator('#email').fill(ADMIN_EMAIL);
+  await page.locator('#password').fill(ADMIN_PASSWORD);
+  await page.getByRole('button', { name: 'Weiter' }).click();
+  await page.locator('#code').fill(authenticator.generate(adminTotpSecret));
+  await page.getByRole('button', { name: 'Anmelden' }).click();
+  await expect(page.getByRole('heading', { name: 'Fall-Dashboard' })).toBeVisible();
+
+  // Bearbeiterliste: Admin-Zeile hat aus Test 2 ein aktives Schlüsselpaar.
+  await page.goto('/admin/handlers');
+  const row = page.locator('li').filter({ hasText: ADMIN_EMAIL });
+  await expect(row.getByText('Schlüssel aktiv')).toBeVisible();
+
+  // Zurücksetzen: neues Initialpasswort, Keypaar wird verworfen.
+  await row.getByRole('button', { name: 'Zurücksetzen' }).click();
+  await row.locator('input[name="password"]').fill('Neues-Admin-Passwort-456');
+  await row.getByRole('button', { name: 'Passwort & Schlüssel zurücksetzen' }).click();
+
+  // Nach dem Reset (router.refresh) ist der Schlüssel ausstehend.
+  await expect(row.getByText('Schlüssel ausstehend')).toBeVisible();
+});
