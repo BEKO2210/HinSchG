@@ -20,6 +20,9 @@ export const ADMIN_SESSION_TTL_SECONDS = 60 * 60; // 60 Minuten
 export const ADMIN_PREAUTH_COOKIE = 'hinschg_admin_pre';
 export const ADMIN_PREAUTH_TTL_SECONDS = 5 * 60; // 5 Minuten für den 2FA-Schritt
 
+export const OIDC_FLOW_COOKIE = 'hinschg_oidc';
+export const OIDC_FLOW_TTL_SECONDS = 10 * 60; // 10 Minuten für den SSO-Redirect-Flow
+
 export type HandlerRole = 'SUPERADMIN' | 'ADMIN' | 'HANDLER' | 'AUDITOR';
 
 interface SignedEnvelope<T> {
@@ -176,6 +179,31 @@ export function createAdminPreAuth(data: AdminPreAuth): { value: string; maxAgeS
 export function verifyAdminPreAuth(value: string | undefined): AdminPreAuth | null {
   const data = verifyToken<AdminPreAuth>(value);
   if (!data || typeof data.h !== 'string' || typeof data.setup !== 'boolean') {
+    return null;
+  }
+  return data;
+}
+
+// --- OIDC-Flow-State (zwischen Start und Callback, kurzlebig) ----------------
+// Traegt state (CSRF) + PKCE-Verifier im signierten httpOnly-Cookie, damit der
+// Callback ohne DB verifizieren kann.
+export interface OidcFlowState {
+  /** CSRF-state, muss mit dem vom IdP zurueckgegebenen Wert uebereinstimmen */
+  st: string;
+  /** PKCE code_verifier */
+  v: string;
+}
+
+export function createOidcFlowState(data: OidcFlowState): { value: string; maxAgeSeconds: number } {
+  return {
+    value: signToken<OidcFlowState>(data, OIDC_FLOW_TTL_SECONDS),
+    maxAgeSeconds: OIDC_FLOW_TTL_SECONDS,
+  };
+}
+
+export function verifyOidcFlowState(value: string | undefined): OidcFlowState | null {
+  const data = verifyToken<OidcFlowState>(value);
+  if (!data || typeof data.st !== 'string' || typeof data.v !== 'string') {
     return null;
   }
   return data;
