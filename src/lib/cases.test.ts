@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { computeDeadlines, validateE2eSubmission, validateReportInput } from './cases';
+import {
+  computeDeadlines,
+  isAllowedAttachmentMime,
+  validateE2eAttachment,
+  validateE2eSubmission,
+  validateReportInput,
+} from './cases';
 
 const validE2e = {
   encryptionVersion: 2,
@@ -96,5 +102,71 @@ describe('computeDeadlines', () => {
     const { deadlineAck, deadlineFeedback } = computeDeadlines(now);
     expect(deadlineAck.toISOString()).toBe('2024-01-22T12:00:00.000Z');
     expect(deadlineFeedback.toISOString()).toBe('2024-04-15T12:00:00.000Z');
+  });
+});
+
+// --- Anhang-Validierung (Stufe 2) -------------------------------------------
+describe('validateE2eAttachment', () => {
+  const b64 = (n: number) => 'A'.repeat(n);
+  const validBox = { nonce: b64(32), content: b64(64) };
+  const base = () => ({
+    mimeType: 'application/pdf',
+    blob: { ...validBox },
+    filename: { ...validBox },
+    sizeBytes: 64,
+    wraps: { RECOVERY: b64(40), WB: b64(40), h_1: b64(40) },
+  });
+
+  it('akzeptiert einen gültigen Anhang', () => {
+    const r = validateE2eAttachment(base());
+    expect(r.ok).toBe(true);
+  });
+
+  it('lehnt einen unerlaubten MIME-Typ ab', () => {
+    const r = validateE2eAttachment({ ...base(), mimeType: 'image/svg+xml' });
+    expect(r.ok).toBe(false);
+  });
+
+  it('lehnt fehlende Pflicht-Empfänger (RECOVERY/WB) ab', () => {
+    const r = validateE2eAttachment({
+      ...base(),
+      wraps: { h_1: b64(40), h_2: b64(40), h_3: b64(40) },
+    });
+    expect(r.ok).toBe(false);
+  });
+
+  it('lehnt ungültige Größe ab', () => {
+    expect(validateE2eAttachment({ ...base(), sizeBytes: 0 }).ok).toBe(false);
+    expect(validateE2eAttachment({ ...base(), sizeBytes: -5 }).ok).toBe(false);
+    expect(validateE2eAttachment({ ...base(), sizeBytes: 1.5 }).ok).toBe(false);
+  });
+
+  it('lehnt kaputten Datei-/Dateinamen-Ciphertext ab', () => {
+    expect(validateE2eAttachment({ ...base(), blob: { nonce: '', content: '' } }).ok).toBe(false);
+    expect(validateE2eAttachment({ ...base(), filename: null }).ok).toBe(false);
+  });
+
+  it('lehnt einen ungültigen Wrap (kein Base64) ab', () => {
+    const r = validateE2eAttachment({
+      ...base(),
+      wraps: { RECOVERY: '!!', WB: b64(40), h_1: b64(40) },
+    });
+    expect(r.ok).toBe(false);
+  });
+
+  it('lehnt Nicht-Objekte ab', () => {
+    expect(validateE2eAttachment(null).ok).toBe(false);
+    expect(validateE2eAttachment('x').ok).toBe(false);
+  });
+});
+
+describe('isAllowedAttachmentMime', () => {
+  it('erlaubt Whitelist-Typen, lehnt aktive Inhalte ab', () => {
+    expect(isAllowedAttachmentMime('application/pdf')).toBe(true);
+    expect(isAllowedAttachmentMime('image/png')).toBe(true);
+    expect(isAllowedAttachmentMime('image/svg+xml')).toBe(false);
+    expect(isAllowedAttachmentMime('text/html')).toBe(false);
+    expect(isAllowedAttachmentMime('application/x-msdownload')).toBe(false);
+    expect(isAllowedAttachmentMime(undefined)).toBe(false);
   });
 });

@@ -115,6 +115,10 @@ export default async function PostfachPage() {
           keys: { select: { recipient: true, wrappedKey: true } },
         },
       },
+      attachments: {
+        orderBy: { createdAt: 'asc' },
+        select: { id: true, mimeType: true, sizeBytes: true, createdAt: true },
+      },
       office: {
         select: {
           recoveryPublicKey: true,
@@ -173,6 +177,12 @@ export default async function PostfachPage() {
           createdAt: m.createdAt.toISOString(),
         };
       }),
+      attachments: found.attachments.map((a) => ({
+        id: a.id,
+        mimeType: a.mimeType,
+        sizeBytes: a.sizeBytes,
+        createdAt: a.createdAt.toISOString(),
+      })),
       replyRecipients,
     };
   }

@@ -14,11 +14,25 @@ interface E2eMessage {
   createdAt: string;
 }
 
+export interface InboxAttachmentMeta {
+  id: string;
+  mimeType: string;
+  sizeBytes: number;
+  createdAt: string;
+}
+
 export interface InboxE2eData {
   wbPublicKey: string;
   report: { nonce: string; content: string; wrap: string | null } | null;
   messages: E2eMessage[];
+  attachments: InboxAttachmentMeta[];
   replyRecipients: Record<string, string>;
+}
+
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 interface DecryptedReport {
@@ -175,6 +189,61 @@ export function InboxE2eView({ data }: { data: InboxE2eData }) {
     }
   }
 
+  async function handleUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setError(null);
+    setBusy(true);
+    try {
+      const { prepareFile, encryptAndUpload } = await import('@/lib/attachments-client');
+      const prepared = await prepareFile(file);
+      const result = await encryptAndUpload(
+        prepared,
+        data.replyRecipients,
+        '/api/inbox/e2e-attachments',
+      );
+      if (!result.ok) {
+        setError(result.error ?? 'Upload fehlgeschlagen.');
+        return;
+      }
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Upload fehlgeschlagen.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDownload(id: string) {
+    setError(null);
+    const kp = keyRef.current;
+    if (!kp) {
+      setError('Bitte zuerst entschlüsseln.');
+      return;
+    }
+    try {
+      const res = await fetch(`/api/inbox/e2e-attachments/${id}`);
+      if (!res.ok) {
+        const b = (await res.json().catch(() => ({}))) as { error?: string };
+        setError(b.error ?? 'Anhang konnte nicht geladen werden.');
+        return;
+      }
+      const payload = (await res.json()) as {
+        mimeType: string;
+        blob: { nonce: string; content: string };
+        filename: { nonce: string; content: string };
+        wrap: string;
+      };
+      const e2e = await import('@/lib/e2e');
+      const out = await e2e.decryptAttachment(payload, payload.wrap, kp.publicKey, kp.privateKey);
+      const { triggerDownload } = await import('@/lib/attachments-client');
+      triggerDownload(out.bytes, out.filename, payload.mimeType);
+    } catch {
+      setError('Entschlüsselung des Anhangs fehlgeschlagen.');
+    }
+  }
+
   if (needsToken) {
     return (
       <form onSubmit={handleTokenSubmit} className="flex max-w-sm flex-col gap-3">
@@ -247,6 +316,37 @@ export function InboxE2eView({ data }: { data: InboxE2eData }) {
           </article>
         );
       })}
+
+      <section className="mt-3 flex flex-col gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
+        <h3 className="text-sm font-medium">Anhänge (Ende-zu-Ende-verschlüsselt)</h3>
+        {data.attachments.length === 0 ? (
+          <p className="text-xs text-slate-500 dark:text-slate-400">Noch keine Anhänge.</p>
+        ) : (
+          <ul className="flex flex-col gap-1">
+            {data.attachments.map((a) => (
+              <li key={a.id} className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-slate-500 dark:text-slate-400">
+                  {a.mimeType} · {formatBytes(a.sizeBytes)} · {formatDateTime(a.createdAt)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleDownload(a.id)}
+                  className="text-brand underline hover:text-brand-accent"
+                >
+                  Herunterladen
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <label className="cursor-pointer self-start rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900">
+          {busy ? 'Verarbeite …' : 'Datei verschlüsselt anhängen'}
+          <input type="file" className="hidden" disabled={busy} onChange={handleUpload} />
+        </label>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Bilder werden vor dem Hochladen von Metadaten (z. B. GPS) bereinigt. Max. 10 MB.
+        </p>
+      </section>
 
       <form
         ref={formRef}

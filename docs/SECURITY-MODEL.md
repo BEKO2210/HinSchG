@@ -219,8 +219,23 @@ Cross-Tenant-Datenzugriff.
   Status vergibt **keine** Rechte und ändert die Krypto-/Zugriffsschicht nicht;
   Aktionen werden als `PROCESSING_REQUESTED`/`PROCESSING_DECIDED` auditiert (ohne PII).
 - **Metadaten** sind nicht Ende-zu-Ende-verschlüsselt.
-- **Anhänge** (CaseAttachment) sind im Datenmodell vorgesehen, aber noch nicht
-  implementiert.
+- **Dateianhänge (CaseAttachment, E2E):** Anhänge nutzen dieselbe Stufe-2-
+  Multi-Recipient-Hybridverschlüsselung wie Meldungen/Nachrichten — ein
+  zufälliger Inhaltsschlüssel verschlüsselt **Datei und Dateiname** (je
+  `secretbox`), der Schlüssel wird pro Empfänger (RECOVERY/WB/Bearbeiter:in) per
+  Sealed Box verpackt (`CaseAttachmentKey`). Der Server speichert **nur**
+  Ciphertext und sieht **nie** Klartext oder Original-Dateinamen. Upload im
+  Meldeformular **und** im Postfach (Hinweisgeber) sowie in der Fallansicht
+  (Bearbeiter:in). **Härtung:** strikte serverseitige MIME-Whitelist (kein
+  HTML/SVG/aktive Inhalte), 10-MiB-Grenze (Klartext) bzw. ~15-MiB-Ciphertext-
+  Limit, Größen-/Base64-Validierung. **Metadaten-Minimierung:** Bilder werden im
+  Browser über ein Canvas neu gerendert → EXIF/GPS gehen verloren; im Audit nur
+  `mimeType` + Ciphertext-Größe, keine PII. **Zugriff:** Download nur für
+  Berechtigte — Bearbeiter:innen über den eigenen Wrap (`session.h`,
+  tenant-gescopt: Fall **und** Anhang müssen zur `officeId` gehören), Hinweisgeber
+  über den WB-Wrap, an die token-gebundene Postfach-Session geknüpft. Fremde
+  Anhang-/Fall-IDs liefern 404, falscher/fehlender Token 401, unerlaubter MIME
+  400. Audit: `ATTACHMENT_ADDED`/`ATTACHMENT_VIEWED`.
 
 ---
 

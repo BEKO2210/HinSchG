@@ -93,6 +93,10 @@ export default async function AdminCasePage({ params }: { params: { id: string }
           keys: { select: { recipient: true, wrappedKey: true } },
         },
       },
+      attachments: {
+        orderBy: { createdAt: 'asc' },
+        select: { id: true, mimeType: true, sizeBytes: true, createdAt: true },
+      },
       office: {
         select: {
           recoveryPublicKey: true,
@@ -167,6 +171,12 @@ export default async function AdminCasePage({ params }: { params: { id: string }
           createdAt: m.createdAt.toISOString(),
         };
       }),
+      attachments: found.attachments.map((a) => ({
+        id: a.id,
+        mimeType: a.mimeType,
+        sizeBytes: a.sizeBytes,
+        createdAt: a.createdAt.toISOString(),
+      })),
       replyRecipients,
     };
   }

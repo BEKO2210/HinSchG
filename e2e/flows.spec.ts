@@ -146,6 +146,76 @@ test('Hinweisgeber liest die Office-Antwort im Browser und antwortet verschlüss
   await context.close();
 });
 
+test('Hinweisgeber lädt einen E2E-Anhang hoch und kann ihn herunterladen', async ({ browser }) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+
+  await page.goto('/postfach');
+  await page.locator('#token').fill(wbE2eToken);
+  await page.getByRole('button', { name: 'Postfach öffnen' }).click();
+  await expect(page.getByRole('heading', { name: 'Ihr Postfach' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Anhänge', exact: false })).toBeVisible();
+
+  // Eine kleine PDF (gültiger MIME) über das Datei-Input anhängen.
+  await page.setInputFiles('input[type="file"]', {
+    name: 'beweis.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.4\nHinSchG E2E Anhang Test\n%%EOF'),
+  });
+
+  // Nach dem (verschlüsselten) Upload erscheint der Anhang mit Download-Link.
+  await expect(page.getByRole('button', { name: 'Herunterladen' })).toBeVisible({
+    timeout: 20_000,
+  });
+
+  // Herunterladen + im Browser entschlüsseln -> Original-Dateiname zurück.
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Herunterladen' }).first().click(),
+  ]);
+  expect(download.suggestedFilename()).toBe('beweis.pdf');
+
+  await context.close();
+});
+
+test('Anhang-Negativfälle: falscher Token (401), unerlaubter MIME (400), fremder Anhang (404)', async ({
+  request,
+  browser,
+}) => {
+  // 1. Ohne gültige Postfach-Session -> 401.
+  const noSession = await request.post('/api/inbox/e2e-attachments', {
+    data: { mimeType: 'application/pdf', blob: {}, filename: {}, wraps: {}, sizeBytes: 1 },
+  });
+  expect(noSession.status()).toBe(401);
+
+  // Gültige Postfach-Session über den v2-Token herstellen (tokenLookup-Login).
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.goto('/postfach');
+  await page.locator('#token').fill(wbE2eToken);
+  await page.getByRole('button', { name: 'Postfach öffnen' }).click();
+  await expect(page.getByRole('heading', { name: 'Ihr Postfach' })).toBeVisible();
+
+  // 2. Unerlaubter MIME-Typ -> 400 (serverseitige Whitelist).
+  const b64 = 'A'.repeat(40);
+  const badMime = await page.request.post('/api/inbox/e2e-attachments', {
+    data: {
+      mimeType: 'image/svg+xml',
+      blob: { nonce: b64, content: b64 },
+      filename: { nonce: b64, content: b64 },
+      wraps: { RECOVERY: b64, WB: b64, x: b64 },
+      sizeBytes: 40,
+    },
+  });
+  expect(badMime.status()).toBe(400);
+
+  // 3. Fremde Anhang-ID -> 404 (Bindung an den Fall der Session).
+  const foreign = await page.request.get('/api/inbox/e2e-attachments/does-not-exist-id');
+  expect(foreign.status()).toBe(404);
+
+  await context.close();
+});
+
 test('Mandantentrennung: ADMIN sieht keine Fälle einer fremden Meldestelle', async ({ page }) => {
   // Login als ADMIN der ersten Meldestelle (TOTP aus gespeichertem Secret).
   await page.goto('/admin/login');

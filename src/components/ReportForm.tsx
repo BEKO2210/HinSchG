@@ -34,6 +34,12 @@ export function ReportForm({ officeSlug }: { officeSlug?: string }) {
   const [result, setResult] = useState<SubmitResult | null>(null);
   const [e2eUsed, setE2eUsed] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Stufe-2-Anhaenge: nach dem Absenden kann der Hinweisgeber verschluesselte
+  // Dateien anhaengen. Empfaenger-Map + WB-PublicKey werden dafuer gemerkt.
+  const [e2eRecipients, setE2eRecipients] = useState<Record<string, string> | null>(null);
+  const [attachToken, setAttachToken] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<string[]>([]);
+  const [attachBusy, setAttachBusy] = useState(false);
 
   // Reicht eine Stufe-2-Meldung ein: Token + Verschlüsselung passieren im
   // Browser; der Server erhält nur Ciphertext. Gibt das Ergebnis zurück.
@@ -80,12 +86,50 @@ export function ReportForm({ officeSlug }: { officeSlug?: string }) {
     if (!response.ok) {
       return { error: body.error ?? 'Die Meldung konnte nicht übermittelt werden.' };
     }
+    // Empfaenger + Token fuer den optionalen Anhang-Upload merken.
+    setE2eRecipients(recipients);
+    setAttachToken(token);
     // Der Token wurde im Browser erzeugt und wird hier einmalig angezeigt.
     return {
       receiptToken: token,
       deadlineAck: body.deadlineAck ?? '',
       deadlineFeedback: body.deadlineFeedback ?? '',
     };
+  }
+
+  // Optionaler Anhang nach dem Absenden (nur Stufe 2): meldet sich per
+  // tokenLookup am Postfach an und laedt die im Browser verschluesselte Datei hoch.
+  async function handleAttach(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !e2eRecipients || !attachToken) return;
+    setError(null);
+    setAttachBusy(true);
+    try {
+      const e2e = await import('@/lib/e2e');
+      const tokenLookup = await e2e.tokenLookupHash(attachToken);
+      const auth = await fetch('/api/inbox/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tokenLookup }),
+      });
+      if (!auth.ok) {
+        setError('Anmeldung für den Anhang fehlgeschlagen.');
+        return;
+      }
+      const { prepareFile, encryptAndUpload } = await import('@/lib/attachments-client');
+      const prepared = await prepareFile(file);
+      const res = await encryptAndUpload(prepared, e2eRecipients, '/api/inbox/e2e-attachments');
+      if (!res.ok) {
+        setError(res.error ?? 'Upload fehlgeschlagen.');
+        return;
+      }
+      setAttachments((prev) => [...prev, prepared.filename]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Upload fehlgeschlagen.');
+    } finally {
+      setAttachBusy(false);
+    }
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -204,6 +248,27 @@ export function ReportForm({ officeSlug }: { officeSlug?: string }) {
               Rückmeldung zu Folgemaßnahmen spätestens bis {formatDate(result.deadlineFeedback)}.
             </li>
           </ul>
+        )}
+
+        {e2eUsed && e2eRecipients && attachToken && (
+          <div className="flex flex-col gap-2 border-t border-slate-200 pt-4 dark:border-slate-800">
+            <h3 className="text-sm font-medium">Anhänge (optional, Ende-zu-Ende-verschlüsselt)</h3>
+            {attachments.length > 0 && (
+              <ul className="list-inside list-disc text-sm text-green-700 dark:text-green-400">
+                {attachments.map((name, i) => (
+                  <li key={`${name}-${i}`}>{name} — verschlüsselt hochgeladen</li>
+                ))}
+              </ul>
+            )}
+            <label className="cursor-pointer self-start rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900">
+              {attachBusy ? 'Verarbeite …' : 'Datei verschlüsselt anhängen'}
+              <input type="file" className="hidden" disabled={attachBusy} onChange={handleAttach} />
+            </label>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Bilder werden vor dem Hochladen von Metadaten (z. B. GPS) bereinigt. Max. 10 MB pro
+              Datei.
+            </p>
+          </div>
         )}
 
         <p className="text-sm text-slate-600 dark:text-slate-300">
